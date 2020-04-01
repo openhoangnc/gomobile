@@ -132,7 +132,8 @@ func envInit() (err error) {
 
 	darwinArmNM = "nm"
 	darwinEnv = make(map[string][]string)
-	for _, arch := range allArchs {
+	// Configure env separately for catalyst, although its arch is amd64
+	for _, arch := range append(allArchs, "catalyst") {
 		var env []string
 		var err error
 		var clang, cflags string
@@ -146,6 +147,10 @@ func envInit() (err error) {
 		case "386", "amd64":
 			clang, cflags, err = envClang("iphonesimulator")
 			cflags += " -mios-simulator-version-min=" + buildIOSVersion
+		case "catalyst":
+			arch = "amd64"
+			clang, cflags, err = envClang("macosx")
+			cflags += " -target x86_64-apple-ios13.0-macabi"
 		default:
 			panic(fmt.Errorf("unknown GOARCH: %q", arch))
 		}
