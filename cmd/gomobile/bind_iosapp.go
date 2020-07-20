@@ -41,22 +41,23 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 	name := pkgs[0].Name
 	title := strings.Title(name)
 
-	if buildO != "" && !strings.HasSuffix(buildO, ".framework") {
-		return fmt.Errorf("static framework name %q missing .framework suffix", buildO)
-	}
-	if buildO == "" {
-		buildO = title + ".framework"
-	}
-
-	fileBases := make([]string, len(pkgs)+1)
-	for i, pkg := range pkgs {
-		fileBases[i] = bindPrefix + strings.Title(pkg.Name)
-	}
-	fileBases[len(fileBases)-1] = "Universe"
-
-	cmd = exec.Command("xcrun", "lipo", "-create")
-
 	for _, arch := range archs {
+
+		if buildO != "" && !strings.HasSuffix(buildO, ".framework") {
+			return fmt.Errorf("static framework name %q missing .framework suffix", buildO)
+		}
+		if buildO == "" {
+			buildO = arch + "/" + title + ".framework"
+		}
+
+		fileBases := make([]string, len(pkgs)+1)
+		for i, pkg := range pkgs {
+			fileBases[i] = bindPrefix + strings.Title(pkg.Name)
+		}
+		fileBases[len(fileBases)-1] = "Universe"
+
+		cmd = exec.Command("xcrun", "lipo", "-create")
+
 		if err := writeGoMod("darwin", arch); err != nil {
 			return err
 		}
@@ -70,98 +71,104 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 			return fmt.Errorf("darwin-%s: %v", arch, err)
 		}
 		cmd.Args = append(cmd.Args, "-arch", archClang(arch), path)
-	}
 
-	// Build static framework output directory.
-	if err := removeAll(buildO); err != nil {
-		return err
-	}
-	headers := buildO + "/Versions/A/Headers"
-	if err := mkdir(headers); err != nil {
-		return err
-	}
-	if err := symlink("A", buildO+"/Versions/Current"); err != nil {
-		return err
-	}
-	if err := symlink("Versions/Current/Headers", buildO+"/Headers"); err != nil {
-		return err
-	}
-	if err := symlink("Versions/Current/"+title, buildO+"/"+title); err != nil {
-		return err
-	}
-
-	cmd.Args = append(cmd.Args, "-o", buildO+"/Versions/A/"+title)
-	if err := runCmd(cmd); err != nil {
-		return err
-	}
-
-	// Copy header file next to output archive.
-	headerFiles := make([]string, len(fileBases))
-	if len(fileBases) == 1 {
-		headerFiles[0] = title + ".h"
-		err := copyFile(
-			headers+"/"+title+".h",
-			srcDir+"/"+bindPrefix+title+".objc.h",
-		)
-		if err != nil {
+		// Build static framework output directory.
+		if err := removeAll(buildO); err != nil {
 			return err
 		}
-	} else {
-		for i, fileBase := range fileBases {
-			headerFiles[i] = fileBase + ".objc.h"
+		headers := buildO + "/Versions/A/Headers"
+		if err := mkdir(headers); err != nil {
+			return err
+		}
+		if err := symlink("A", buildO+"/Versions/Current"); err != nil {
+			return err
+		}
+		if err := symlink("Versions/Current/Headers", buildO+"/Headers"); err != nil {
+			return err
+		}
+		if err := symlink("Versions/Current/"+title, buildO+"/"+title); err != nil {
+			return err
+		}
+
+		cmd.Args = append(cmd.Args, "-o", buildO+"/Versions/A/"+title)
+		if err := runCmd(cmd); err != nil {
+			return err
+		}
+
+		// Copy header file next to output archive.
+		headerFiles := make([]string, len(fileBases))
+		if len(fileBases) == 1 {
+			headerFiles[0] = title + ".h"
 			err := copyFile(
-				headers+"/"+fileBase+".objc.h",
-				srcDir+"/"+fileBase+".objc.h")
+				headers+"/"+title+".h",
+				srcDir+"/"+bindPrefix+title+".objc.h",
+			)
+			if err != nil {
+				return err
+			}
+		} else {
+			for i, fileBase := range fileBases {
+				headerFiles[i] = fileBase + ".objc.h"
+				err := copyFile(
+					headers+"/"+fileBase+".objc.h",
+					srcDir+"/"+fileBase+".objc.h")
+				if err != nil {
+					return err
+				}
+			}
+			err := copyFile(
+				headers+"/ref.h",
+				srcDir+"/ref.h")
+			if err != nil {
+				return err
+			}
+			headerFiles = append(headerFiles, title+".h")
+			err = writeFile(headers+"/"+title+".h", func(w io.Writer) error {
+				return iosBindHeaderTmpl.Execute(w, map[string]interface{}{
+					"pkgs": pkgs, "title": title, "bases": fileBases,
+				})
+			})
 			if err != nil {
 				return err
 			}
 		}
-		err := copyFile(
-			headers+"/ref.h",
-			srcDir+"/ref.h")
-		if err != nil {
+
+		resources := buildO + "/Versions/A/Resources"
+		if err := mkdir(resources); err != nil {
 			return err
 		}
-		headerFiles = append(headerFiles, title+".h")
-		err = writeFile(headers+"/"+title+".h", func(w io.Writer) error {
-			return iosBindHeaderTmpl.Execute(w, map[string]interface{}{
-				"pkgs": pkgs, "title": title, "bases": fileBases,
-			})
+		if err := symlink("Versions/Current/Resources", buildO+"/Resources"); err != nil {
+			return err
+		}
+		err = writeFile(buildO+"/Resources/Info.plist", func(w io.Writer) error {
+			_, err := w.Write([]byte(iosBindInfoPlist))
+			return err
 		})
 		if err != nil {
 			return err
 		}
-	}
 
-	resources := buildO + "/Versions/A/Resources"
-	if err := mkdir(resources); err != nil {
-		return err
+		var mmVals = struct {
+			Module  string
+			Headers []string
+		}{
+			Module:  title,
+			Headers: headerFiles,
+		}
+		err = writeFile(buildO+"/Versions/A/Modules/module.modulemap", func(w io.Writer) error {
+			return iosModuleMapTmpl.Execute(w, mmVals)
+		})
+		if err != nil {
+			return err
+		}
+		err = symlink("Versions/Current/Modules", buildO+"/Modules")
+		if err != nil {
+			return err
+		}
+		// Set buildO to zero value so it's correctly set next iteration
+		buildO = ""
 	}
-	if err := symlink("Versions/Current/Resources", buildO+"/Resources"); err != nil {
-		return err
-	}
-	err := writeFile(buildO+"/Resources/Info.plist", func(w io.Writer) error {
-		_, err := w.Write([]byte(iosBindInfoPlist))
-		return err
-	})
-	if err != nil {
-		return err
-	}
-
-	var mmVals = struct {
-		Module  string
-		Headers []string
-	}{
-		Module:  title,
-		Headers: headerFiles,
-	}
-	err = writeFile(buildO+"/Versions/A/Modules/module.modulemap", func(w io.Writer) error {
-		return iosModuleMapTmpl.Execute(w, mmVals)
-	})
-	if err != nil {
-		return err
-	}
-	return symlink("Versions/Current/Modules", buildO+"/Modules")
+	return nil
 }
 
 const iosBindInfoPlist = `<?xml version="1.0" encoding="UTF-8"?>

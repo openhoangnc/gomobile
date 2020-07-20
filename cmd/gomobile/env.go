@@ -22,7 +22,7 @@ var (
 	androidArmNM string
 	darwinArmNM  string
 
-	allArchs = []string{"arm", "arm64", "386", "amd64"}
+	allArchs = []string{"arm", "arm64", "386", "amd64", "catalyst"}
 
 	bitcodeEnabled bool
 )
@@ -133,7 +133,7 @@ func envInit() (err error) {
 	darwinArmNM = "nm"
 	darwinEnv = make(map[string][]string)
 	// Configure env separately for catalyst, although its arch is amd64
-	for _, arch := range append(allArchs, "catalyst") {
+	for _, arch := range allArchs {
 		var env []string
 		var err error
 		var clang, cflags string
@@ -148,7 +148,6 @@ func envInit() (err error) {
 			clang, cflags, err = envClang("iphonesimulator")
 			cflags += " -mios-simulator-version-min=" + buildIOSVersion
 		case "catalyst":
-			arch = "amd64"
 			clang, cflags, err = envClang("macosx")
 			cflags += " -target x86_64-apple-ios13.0-macabi"
 		default:
@@ -163,13 +162,14 @@ func envInit() (err error) {
 		}
 		env = append(env,
 			"GOOS=darwin",
-			"GOARCH="+arch,
+			"GOARCH="+archGo(arch),
 			"CC="+clang,
 			"CXX="+clang+"++",
 			"CGO_CFLAGS="+cflags+" -arch "+archClang(arch),
 			"CGO_CXXFLAGS="+cflags+" -arch "+archClang(arch),
 			"CGO_LDFLAGS="+cflags+" -arch "+archClang(arch),
 			"CGO_ENABLED=1",
+			"ARCH="+arch,
 		)
 		darwinEnv[arch] = env
 	}
@@ -222,6 +222,23 @@ func envClang(sdkName string) (clang, cflags string, err error) {
 	return clang, "-isysroot " + sdk, nil
 }
 
+func archGo(goarch string) string {
+	switch goarch {
+	case "arm":
+		return "arm"
+	case "arm64":
+		return "arm64"
+	case "386":
+		return "386"
+	case "amd64":
+		return "amd64"
+	case "catalyst":
+		return "amd64"
+	default:
+		panic(fmt.Sprintf("unknown GOARCH: %q", goarch))
+	}
+}
+
 func archClang(goarch string) string {
 	switch goarch {
 	case "arm":
@@ -231,6 +248,8 @@ func archClang(goarch string) string {
 	case "386":
 		return "i386"
 	case "amd64":
+		return "x86_64"
+	case "catalyst":
 		return "x86_64"
 	default:
 		panic(fmt.Sprintf("unknown GOARCH: %q", goarch))
