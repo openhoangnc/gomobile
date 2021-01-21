@@ -71,12 +71,12 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 		fileBases[len(fileBases)-1] = "Universe"
 
 		cmd = exec.Command("xcrun", "lipo", "-create")
+		env := darwinEnv[arch]
 
-		if err := writeGoMod("darwin", arch); err != nil {
+		if err := writeGoMod("darwin", getenv(env, "GOARCH")); err != nil {
 			return err
 		}
 
-		env := darwinEnv[arch]
 		// Add the generated packages to GOPATH for reverse bindings.
 		gopath := fmt.Sprintf("GOPATH=%s%c%s", tmpdir, filepath.ListSeparator, goEnv("GOPATH"))
 		env = append(env, gopath)
