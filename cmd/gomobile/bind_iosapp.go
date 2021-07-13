@@ -72,14 +72,7 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 
 		for index, arch := range iOSTargetArchs(target) {
 			// Skip unrequested architectures
-			var found bool
-			for _, a := range archs {
-				if arch == a {
-					found = true
-					break
-				}
-			}
-			if !found {
+			if !contains(archs, arch) {
 				continue
 			}
 

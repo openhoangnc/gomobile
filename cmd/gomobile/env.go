@@ -58,6 +58,15 @@ func iOSTargetArchs(target string) []string {
 	}
 }
 
+func contains(haystack []string, needle string) bool {
+	for _, v := range haystack {
+		if v == needle {
+			return true
+		}
+	}
+	return false
+}
+
 func buildEnvInit() (cleanup func(), err error) {
 	// Find gomobilepath.
 	gopath := goEnv("GOPATH")
