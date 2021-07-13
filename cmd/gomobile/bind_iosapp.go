@@ -22,7 +22,7 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 		"-lang=go,objc",
 		"-outdir="+tmpdir,
 	)
-	cmd.Env = append(cmd.Env, "GOOS=darwin")
+	cmd.Env = append(cmd.Env, "GOOS=ios")
 	cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
 	tags := append(buildTags, "ios")
 	cmd.Args = append(cmd.Args, "-tags="+strings.Join(tags, ","))
