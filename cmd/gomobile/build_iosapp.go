@@ -76,21 +76,30 @@ func goIOSBuild(pkg *packages.Package, bundleID string, archs []string) (map[str
 		"-o", filepath.Join(tmpdir, "main/main"),
 		"-create",
 	)
+
 	var nmpkgs map[string]bool
-	for _, arch := range archs {
-		path := filepath.Join(tmpdir, arch)
-		// Disable DWARF; see golang.org/issues/25148.
-		if err := goBuild(src, darwinEnv[arch], "-ldflags=-w", "-o="+path); err != nil {
-			return nil, err
-		}
-		if nmpkgs == nil {
-			var err error
-			nmpkgs, err = extractPkgs(darwinArmNM, path)
-			if err != nil {
+	for _, target := range iOSTargets {
+		for _, arch := range iOSTargetArchs(target) {
+			// Skip unrequested architectures
+			if !contains(archs, arch) {
+				continue
+			}
+
+			path := filepath.Join(tmpdir, target, arch)
+
+			// Disable DWARF; see golang.org/issues/25148.
+			if err := goBuild(src, darwinEnv[target+"_"+arch], "-ldflags=-w", "-o="+path); err != nil {
 				return nil, err
 			}
+			if nmpkgs == nil {
+				var err error
+				nmpkgs, err = extractPkgs(darwinArmNM, path)
+				if err != nil {
+					return nil, err
+				}
+			}
+			cmd.Args = append(cmd.Args, path)
 		}
-		cmd.Args = append(cmd.Args, path)
 	}
 
 	if err := runCmd(cmd); err != nil {

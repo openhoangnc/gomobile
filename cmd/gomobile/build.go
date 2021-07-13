@@ -132,9 +132,15 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 			return nil, fmt.Errorf("-target=ios requires XCode")
 		}
 		if pkg.Name != "main" {
-			for _, arch := range targetArchs {
-				if err := goBuild(pkg.PkgPath, darwinEnv[arch]); err != nil {
-					return nil, err
+			for _, target := range iOSTargets {
+				for _, arch := range iOSTargetArchs(target) {
+					// Skip unrequested architectures
+					if !contains(targetArchs, arch) {
+						continue
+					}
+					if err := goBuild(pkg.PkgPath, darwinEnv[target+"_"+arch]); err != nil {
+						return nil, err
+					}
 				}
 			}
 			return pkg, nil
