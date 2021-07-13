@@ -78,17 +78,17 @@ func goIOSBuild(pkg *packages.Package, bundleID string, archs []string) (map[str
 	)
 
 	var nmpkgs map[string]bool
-	for _, target := range iOSTargets {
-		for _, arch := range iOSTargetArchs(target) {
+	for _, sdk := range darwinSDKs {
+		for _, arch := range darwinArchs(sdk) {
 			// Skip unrequested architectures
 			if !contains(archs, arch) {
 				continue
 			}
 
-			path := filepath.Join(tmpdir, target, arch)
+			path := filepath.Join(tmpdir, sdk, arch)
 
 			// Disable DWARF; see golang.org/issues/25148.
-			if err := goBuild(src, darwinEnv[target+"_"+arch], "-ldflags=-w", "-o="+path); err != nil {
+			if err := goBuild(src, darwinEnv[sdk+"_"+arch], "-ldflags=-w", "-o="+path); err != nil {
 				return nil, err
 			}
 			if nmpkgs == nil {

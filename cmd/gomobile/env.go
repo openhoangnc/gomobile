@@ -37,14 +37,14 @@ func allArchs(targetOS string) []string {
 	}
 }
 
-// iOSTargets lists Apple platforms as individual sub-targets.
+// darwinSDKs is a list of currently-supported Apple platform SDKs.
 // The gomobile "ios" target actually builds for multiple Apple platforms:
 // iOS, iPadOS, MacCatalyst (iOS on macOS), and macOS.
 // TODO: support watchOS and tvOS?
-var iOSTargets = []string{"simulator", "ios", "catalyst", "macos"}
+var darwinSDKs = []string{"simulator", "ios", "catalyst", "macos"}
 
-func iOSTargetArchs(target string) []string {
-	switch target {
+func darwinArchs(sdk string) []string {
+	switch sdk {
 	case "simulator":
 		return []string{"arm64", "amd64"}
 	case "ios":
@@ -54,7 +54,7 @@ func iOSTargetArchs(target string) []string {
 	case "macos":
 		return []string{"arm64", "amd64"}
 	default:
-		panic(fmt.Sprintf("unexpected iOS target: %s", target))
+		panic(fmt.Sprintf("unexpected darwin SDK: %s", sdk))
 	}
 }
 
@@ -172,18 +172,18 @@ func envInit() (err error) {
 
 	darwinArmNM = "nm"
 	darwinEnv = make(map[string][]string)
-	for _, target := range iOSTargets {
+	for _, sdk := range darwinSDKs {
 		// Catalyst support requires iOS 13+
 		v, _ := strconv.ParseFloat(buildIOSVersion, 64)
-		if target == "catalyst" && v < 13.0 {
+		if sdk == "catalyst" && v < 13.0 {
 			continue
 		}
 
-		for _, arch := range iOSTargetArchs(target) {
+		for _, arch := range darwinArchs(sdk) {
 			var env []string
 			var goos, goflags, clang, cflags string
 			var err error
-			switch target {
+			switch sdk {
 			case "ios":
 				goos = "ios"
 				goflags = "-tags=ios"
@@ -231,7 +231,7 @@ func envInit() (err error) {
 				"CGO_LDFLAGS="+cflags+" -arch "+archClang(arch),
 				"CGO_ENABLED=1",
 			)
-			darwinEnv[target+"_"+arch] = env
+			darwinEnv[sdk+"_"+arch] = env
 		}
 	}
 

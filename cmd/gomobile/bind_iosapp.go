@@ -24,6 +24,7 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 	)
 	cmd.Env = append(cmd.Env, "GOOS=ios")
 	cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
+	// FIXME: support binding against macOS, macCatalyst, etc.
 	tags := append(buildTags, "ios")
 	cmd.Args = append(cmd.Args, "-tags="+strings.Join(tags, ","))
 	if bindPrefix != "" {
@@ -66,11 +67,11 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 	// create separate framework for ios,simulator and catalyst
 	// every target has at least one arch (arm64 and x86_64)
 	var frameworkDirs []string
-	for _, target := range iOSTargets {
-		frameworkDir := filepath.Join(tmpdir, target, title+".framework")
+	for _, sdk := range darwinSDKs {
+		frameworkDir := filepath.Join(tmpdir, sdk, title+".framework")
 		frameworkDirs = append(frameworkDirs, frameworkDir)
 
-		for index, arch := range iOSTargetArchs(target) {
+		for index, arch := range darwinArchs(sdk) {
 			// Skip unrequested architectures
 			if !contains(archs, arch) {
 				continue
@@ -82,7 +83,7 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 			}
 			fileBases[len(fileBases)-1] = "Universe"
 
-			env := darwinEnv[target+"_"+arch]
+			env := darwinEnv[sdk+"_"+arch]
 
 			if err := writeGoMod("darwin", getenv(env, "GOARCH")); err != nil {
 				return err
