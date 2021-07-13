@@ -172,19 +172,22 @@ func envInit() (err error) {
 
 		for _, arch := range iOSTargetArchs(target) {
 			var env []string
-			var goos, clang, cflags string
+			var goos, goflags, clang, cflags string
 			var err error
 			switch target {
 			case "ios":
 				goos = "ios"
+				goflags = "-tags=ios"
 				clang, cflags, err = envClang("iphoneos")
 				cflags += " -miphoneos-version-min=" + buildIOSVersion
 			case "simulator":
 				goos = "ios"
+				goflags = "-tags=ios,simulator"
 				clang, cflags, err = envClang("iphonesimulator")
 				cflags += " -mios-simulator-version-min=" + buildIOSVersion
 			case "catalyst":
 				goos = "darwin"
+				goflags = "-tags=ios,macos,catalyst"
 				clang, cflags, err = envClang("macosx")
 				switch arch {
 				case "amd64":
@@ -194,6 +197,7 @@ func envInit() (err error) {
 				}
 			case "macos":
 				goos = "darwin"
+				goflags = "-tags=macos"
 				// Note: the SDK is called "macosx", not "macos"
 				clang, cflags, err = envClang("macosx")
 			default:
@@ -210,6 +214,7 @@ func envInit() (err error) {
 			env = append(env,
 				"GOOS="+goos,
 				"GOARCH="+arch,
+				"GOFLAGS="+goflags,
 				"CC="+clang,
 				"CXX="+clang+"++",
 				"CGO_CFLAGS="+cflags+" -arch "+archClang(arch),

@@ -291,15 +291,8 @@ func goCmd(subcmd string, srcs []string, env []string, args ...string) error {
 func goCmdAt(at string, subcmd string, srcs []string, env []string, args ...string) error {
 	cmd := exec.Command("go", subcmd)
 	tags := buildTags
-	targetOS, _, err := parseBuildTarget(buildTarget)
-	if err != nil {
-		return err
-	}
-	if targetOS == "darwin" {
-		tags = append(tags, "ios")
-	}
 	if len(tags) > 0 {
-		cmd.Args = append(cmd.Args, "-tags", strings.Join(tags, " "))
+		cmd.Args = append(cmd.Args, "-tags", strings.Join(tags, ","))
 	}
 	if buildV {
 		cmd.Args = append(cmd.Args, "-v")
