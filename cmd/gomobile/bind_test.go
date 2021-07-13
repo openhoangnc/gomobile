@@ -194,29 +194,89 @@ jar c -C $WORK/javac-output .
 
 var bindIOSTmpl = template.Must(template.New("output").Parse(`GOMOBILE={{.GOPATH}}/pkg/gomobile
 WORK=$WORK
-GOOS=darwin CGO_ENABLED=1 gobind -lang=go,objc -outdir=$WORK -tags=ios{{if .Prefix}} -prefix={{.Prefix}}{{end}} golang.org/x/mobile/asset
+GOOS=ios CGO_ENABLED=1 gobind -lang=go,objc -outdir=$WORK -tags=ios{{if .Prefix}} -prefix={{.Prefix}}{{end}} golang.org/x/mobile/asset
 rm -r -f "{{.Output}}.xcframework"
 mkdir -p $WORK/src
-PWD=$WORK/src GOOS=darwin GOARCH=arm64 CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go build -tags ios -x -buildmode=c-archive -o $WORK/{{.Output}}-arm64.a ./gobind
-mkdir -p $WORK/arm64/{{.Output}}.framework/Versions/A/Headers
-ln -s A $WORK/arm64/{{.Output}}.framework/Versions/Current
-ln -s Versions/Current/Headers $WORK/arm64/{{.Output}}.framework/Headers
-ln -s Versions/Current/{{.Output}} $WORK/arm64/{{.Output}}.framework/{{.Output}}
-xcrun lipo -create -arch arm64 $WORK/{{.Output}}-arm64.a -o $WORK/arm64/{{.Output}}.framework/Versions/A/{{.Output}}
-cp $WORK/src/gobind/{{.Prefix}}Asset.objc.h $WORK/arm64/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
-mkdir -p $WORK/arm64/{{.Output}}.framework/Versions/A/Headers
-cp $WORK/src/gobind/Universe.objc.h $WORK/arm64/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
-mkdir -p $WORK/arm64/{{.Output}}.framework/Versions/A/Headers
-cp $WORK/src/gobind/ref.h $WORK/arm64/{{.Output}}.framework/Versions/A/Headers/ref.h
-mkdir -p $WORK/arm64/{{.Output}}.framework/Versions/A/Headers
-mkdir -p $WORK/arm64/{{.Output}}.framework/Versions/A/Headers
-mkdir -p $WORK/arm64/{{.Output}}.framework/Versions/A/Resources
-ln -s Versions/Current/Resources $WORK/arm64/{{.Output}}.framework/Resources
-mkdir -p $WORK/arm64/{{.Output}}.framework/Resources
-mkdir -p $WORK/arm64/{{.Output}}.framework/Versions/A/Modules
-ln -s Versions/Current/Modules $WORK/arm64/{{.Output}}.framework/Modules
-xcrun lipo $WORK/arm64/{{.Output}}.framework/Versions/A/{{.Output}} -thin arm64 -output $WORK/arm64/{{.Output}}.framework/Versions/A/{{.Output}}
-xcodebuild -create-xcframework -framework $WORK/arm64/{{.Output}}.framework -framework $WORK/amd64/{{.Output}}.framework -framework $WORK/catalyst/{{.Output}}.framework -output {{.Output}}.xcframework
+PWD=$WORK/src GOOS=ios GOARCH=arm64 CC=iphonesimulator-clang CXX=iphonesimulator-clang++ CGO_CFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go mod tidy
+PWD=$WORK/src GOOS=ios GOARCH=arm64 CC=iphonesimulator-clang CXX=iphonesimulator-clang++ CGO_CFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go build -tags ios -x -buildmode=c-archive -o $WORK/{{.Output}}-arm64.a ./gobind
+mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
+ln -s A $WORK/simulator/{{.Output}}.framework/Versions/Current
+ln -s Versions/Current/Headers $WORK/simulator/{{.Output}}.framework/Headers
+ln -s Versions/Current/{{.Output}} $WORK/simulator/{{.Output}}.framework/{{.Output}}
+xcrun lipo -create -arch arm64 $WORK/{{.Output}}-arm64.a -o $WORK/simulator/{{.Output}}.framework/Versions/A/{{.Output}}
+cp $WORK/src/gobind/{{.Prefix}}Asset.objc.h $WORK/simulator/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
+mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
+cp $WORK/src/gobind/Universe.objc.h $WORK/simulator/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
+mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
+cp $WORK/src/gobind/ref.h $WORK/simulator/{{.Output}}.framework/Versions/A/Headers/ref.h
+mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
+mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
+mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Resources
+ln -s Versions/Current/Resources $WORK/simulator/{{.Output}}.framework/Resources
+mkdir -p $WORK/simulator/{{.Output}}.framework/Resources
+mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Modules
+ln -s Versions/Current/Modules $WORK/simulator/{{.Output}}.framework/Modules
+mkdir -p $WORK/src
+PWD=$WORK/src GOOS=ios GOARCH=arm64 CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go mod tidy
+PWD=$WORK/src GOOS=ios GOARCH=arm64 CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go build -tags ios -x -buildmode=c-archive -o $WORK/{{.Output}}-arm64.a ./gobind
+mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
+ln -s A $WORK/ios/{{.Output}}.framework/Versions/Current
+ln -s Versions/Current/Headers $WORK/ios/{{.Output}}.framework/Headers
+ln -s Versions/Current/{{.Output}} $WORK/ios/{{.Output}}.framework/{{.Output}}
+xcrun lipo -create -arch arm64 $WORK/{{.Output}}-arm64.a -o $WORK/ios/{{.Output}}.framework/Versions/A/{{.Output}}
+cp $WORK/src/gobind/{{.Prefix}}Asset.objc.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
+mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
+cp $WORK/src/gobind/Universe.objc.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
+mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
+cp $WORK/src/gobind/ref.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/ref.h
+mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
+mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
+mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Resources
+ln -s Versions/Current/Resources $WORK/ios/{{.Output}}.framework/Resources
+mkdir -p $WORK/ios/{{.Output}}.framework/Resources
+mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Modules
+ln -s Versions/Current/Modules $WORK/ios/{{.Output}}.framework/Modules
+mkdir -p $WORK/src
+PWD=$WORK/src GOOS=darwin GOARCH=arm64 CC=macosx-clang CXX=macosx-clang++ CGO_CFLAGS=-isysroot=macosx -target arm64-apple-ios13.0-macabi {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=macosx -target arm64-apple-ios13.0-macabi {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=macosx -target arm64-apple-ios13.0-macabi {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go mod tidy
+PWD=$WORK/src GOOS=darwin GOARCH=arm64 CC=macosx-clang CXX=macosx-clang++ CGO_CFLAGS=-isysroot=macosx -target arm64-apple-ios13.0-macabi {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=macosx -target arm64-apple-ios13.0-macabi {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=macosx -target arm64-apple-ios13.0-macabi {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go build -tags ios -x -buildmode=c-archive -o $WORK/{{.Output}}-arm64.a ./gobind
+mkdir -p $WORK/catalyst/{{.Output}}.framework/Versions/A/Headers
+ln -s A $WORK/catalyst/{{.Output}}.framework/Versions/Current
+ln -s Versions/Current/Headers $WORK/catalyst/{{.Output}}.framework/Headers
+ln -s Versions/Current/{{.Output}} $WORK/catalyst/{{.Output}}.framework/{{.Output}}
+xcrun lipo -create -arch arm64 $WORK/{{.Output}}-arm64.a -o $WORK/catalyst/{{.Output}}.framework/Versions/A/{{.Output}}
+cp $WORK/src/gobind/{{.Prefix}}Asset.objc.h $WORK/catalyst/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
+mkdir -p $WORK/catalyst/{{.Output}}.framework/Versions/A/Headers
+cp $WORK/src/gobind/Universe.objc.h $WORK/catalyst/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
+mkdir -p $WORK/catalyst/{{.Output}}.framework/Versions/A/Headers
+cp $WORK/src/gobind/ref.h $WORK/catalyst/{{.Output}}.framework/Versions/A/Headers/ref.h
+mkdir -p $WORK/catalyst/{{.Output}}.framework/Versions/A/Headers
+mkdir -p $WORK/catalyst/{{.Output}}.framework/Versions/A/Headers
+mkdir -p $WORK/catalyst/{{.Output}}.framework/Versions/A/Resources
+ln -s Versions/Current/Resources $WORK/catalyst/{{.Output}}.framework/Resources
+mkdir -p $WORK/catalyst/{{.Output}}.framework/Resources
+mkdir -p $WORK/catalyst/{{.Output}}.framework/Versions/A/Modules
+ln -s Versions/Current/Modules $WORK/catalyst/{{.Output}}.framework/Modules
+mkdir -p $WORK/src
+PWD=$WORK/src GOOS=darwin GOARCH=arm64 CC=macosx-clang CXX=macosx-clang++ CGO_CFLAGS=-isysroot=macosx {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=macosx {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=macosx {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go mod tidy
+PWD=$WORK/src GOOS=darwin GOARCH=arm64 CC=macosx-clang CXX=macosx-clang++ CGO_CFLAGS=-isysroot=macosx {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=macosx {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=macosx {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go build -tags ios -x -buildmode=c-archive -o $WORK/{{.Output}}-arm64.a ./gobind
+mkdir -p $WORK/macos/{{.Output}}.framework/Versions/A/Headers
+ln -s A $WORK/macos/{{.Output}}.framework/Versions/Current
+ln -s Versions/Current/Headers $WORK/macos/{{.Output}}.framework/Headers
+ln -s Versions/Current/{{.Output}} $WORK/macos/{{.Output}}.framework/{{.Output}}
+xcrun lipo -create -arch arm64 $WORK/{{.Output}}-arm64.a -o $WORK/macos/{{.Output}}.framework/Versions/A/{{.Output}}
+cp $WORK/src/gobind/{{.Prefix}}Asset.objc.h $WORK/macos/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
+mkdir -p $WORK/macos/{{.Output}}.framework/Versions/A/Headers
+cp $WORK/src/gobind/Universe.objc.h $WORK/macos/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
+mkdir -p $WORK/macos/{{.Output}}.framework/Versions/A/Headers
+cp $WORK/src/gobind/ref.h $WORK/macos/{{.Output}}.framework/Versions/A/Headers/ref.h
+mkdir -p $WORK/macos/{{.Output}}.framework/Versions/A/Headers
+mkdir -p $WORK/macos/{{.Output}}.framework/Versions/A/Headers
+mkdir -p $WORK/macos/{{.Output}}.framework/Versions/A/Resources
+ln -s Versions/Current/Resources $WORK/macos/{{.Output}}.framework/Resources
+mkdir -p $WORK/macos/{{.Output}}.framework/Resources
+mkdir -p $WORK/macos/{{.Output}}.framework/Versions/A/Modules
+ln -s Versions/Current/Modules $WORK/macos/{{.Output}}.framework/Modules
+xcodebuild -create-xcframework -framework $WORK/simulator/{{.Output}}.framework -framework $WORK/ios/{{.Output}}.framework -framework $WORK/catalyst/{{.Output}}.framework -framework $WORK/macos/{{.Output}}.framework -output {{.Output}}.xcframework
 `))
 
 func TestBindIOSAll(t *testing.T) {
