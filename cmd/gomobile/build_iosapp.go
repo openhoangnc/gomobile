@@ -152,11 +152,11 @@ func goIOSBuild(pkg *packages.Package, bundleID string, archs []string) (map[str
 }
 
 func detectTeamID() (string, error) {
-	// Grabs the first certificate for "iPhone Developer"; will not work if there
+	// Grabs the first certificate for "Apple Development"; will not work if there
 	// are multiple certificates and the first is not desired.
 	cmd := exec.Command(
 		"security", "find-certificate",
-		"-c", "iPhone Developer", "-p",
+		"-c", "Apple Development", "-p",
 	)
 	pemString, err := cmd.Output()
 	if err != nil {
