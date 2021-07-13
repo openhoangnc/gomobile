@@ -435,7 +435,6 @@ var projPbxprojTmpl = template.Must(template.New("projPbxproj").Parse(`// !$*UTF
         GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
         GCC_WARN_UNUSED_FUNCTION = YES;
         GCC_WARN_UNUSED_VARIABLE = YES;
-        IPHONEOS_DEPLOYMENT_TARGET = 8.3;
         MTL_ENABLE_DEBUG_INFO = NO;
         SDKROOT = iphoneos;
         TARGETED_DEVICE_FAMILY = "1,2";
