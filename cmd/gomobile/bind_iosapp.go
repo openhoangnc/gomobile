@@ -71,6 +71,18 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 		frameworkDirs = append(frameworkDirs, frameworkDir)
 
 		for index, arch := range iOSTargetArchs(target) {
+			// Skip unrequested architectures
+			var found bool
+			for _, a := range archs {
+				if arch == a {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+
 			fileBases := make([]string, len(pkgs)+1)
 			for i, pkg := range pkgs {
 				fileBases[i] = bindPrefix + strings.Title(pkg.Name)
