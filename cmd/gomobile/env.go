@@ -178,9 +178,9 @@ func envInit() (err error) {
 				clang, cflags, err = envClang("macosx")
 				switch arch {
 				case "amd64":
-					cflags += " -target x86_64-apple-ios13.0-macabi"
+					cflags += " -target x86_64-apple-ios" + buildIOSVersion + "-macabi"
 				case "arm64":
-					cflags += " -target arm64-apple-ios13.0-macabi"
+					cflags += " -target arm64-apple-ios" + buildIOSVersion + "-macabi"
 				}
 			case "macos":
 				// Note: the SDK is called "macosx", not "macos"
