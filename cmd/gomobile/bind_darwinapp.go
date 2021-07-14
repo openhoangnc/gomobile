@@ -15,7 +15,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
+func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targetArchs []string) error {
 	// Run gobind to generate the bindings
 	cmd := exec.Command(
 		gobind,
@@ -67,13 +67,13 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 	// create separate framework for ios,simulator and catalyst
 	// every target has at least one arch (arm64 and x86_64)
 	var frameworkDirs []string
-	for _, sdk := range darwinSDKs {
-		frameworkDir := filepath.Join(tmpdir, sdk, title+".framework")
+	for _, platform := range targetPlatforms {
+		frameworkDir := filepath.Join(tmpdir, platform, title+".framework")
 		frameworkDirs = append(frameworkDirs, frameworkDir)
 
-		for index, arch := range darwinArchs(sdk) {
+		for index, arch := range platformArchs(platform) {
 			// Skip unrequested architectures
-			if !contains(archs, arch) {
+			if !contains(targetArchs, arch) {
 				continue
 			}
 
@@ -83,7 +83,7 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 			}
 			fileBases[len(fileBases)-1] = "Universe"
 
-			env := darwinEnv[sdk+"_"+arch]
+			env := darwinEnv[platform+"/"+arch]
 
 			if err := writeGoMod("darwin", getenv(env, "GOARCH")); err != nil {
 				return err
@@ -101,7 +101,7 @@ func goIOSBind(gobind string, pkgs []*packages.Package, archs []string) error {
 				}
 			}
 
-			path, err := goIOSBindArchive(name, env, filepath.Join(tmpdir, "src"))
+			path, err := goDarwinBindArchive(name, env, filepath.Join(tmpdir, "src"))
 			if err != nil {
 				return fmt.Errorf("darwin-%s: %v", arch, err)
 			}
@@ -245,7 +245,7 @@ var iosModuleMapTmpl = template.Must(template.New("iosmmap").Parse(`framework mo
     export *
 }`))
 
-func goIOSBindArchive(name string, env []string, gosrc string) (string, error) {
+func goDarwinBindArchive(name string, env []string, gosrc string) (string, error) {
 	arch := getenv(env, "GOARCH")
 	archive := filepath.Join(tmpdir, name+"-"+arch+".a")
 	err := goBuildAt(gosrc, "./gobind", env, "-buildmode=c-archive", "-o", archive)

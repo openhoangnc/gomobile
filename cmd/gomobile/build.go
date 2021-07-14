@@ -81,10 +81,12 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 
 	args := cmd.flag.Args()
 
-	targetOS, targetArchs, err := parseBuildTarget(buildTarget)
+	targetPlatforms, targetArchs, err := parseBuildTargets(buildTarget)
 	if err != nil {
 		return nil, fmt.Errorf(`invalid -target=%q: %v`, buildTarget, err)
 	}
+
+	isAndroid := targetPlatforms[0] == "android"
 
 	var buildPath string
 	switch len(args) {
@@ -96,10 +98,14 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 		cmd.usage()
 		os.Exit(1)
 	}
-	pkgs, err := packages.Load(packagesConfig(targetOS), buildPath)
+
+	// TODO(ydnar): this should work, unless build tags affect loading a single package.
+	// Should we try to import packages with different build tags per platform?
+	pkgs, err := packages.Load(packagesConfig(targetPlatforms[0]), buildPath)
 	if err != nil {
 		return nil, err
 	}
+
 	// len(pkgs) can be more than 1 e.g., when the specified path includes `...`.
 	if len(pkgs) != 1 {
 		cmd.usage()
@@ -113,8 +119,7 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 	}
 
 	var nmpkgs map[string]bool
-	switch targetOS {
-	case "android":
+	if isAndroid {
 		if pkg.Name != "main" {
 			for _, arch := range targetArchs {
 				if err := goBuild(pkg.PkgPath, androidEnv[arch]); err != nil {
@@ -127,18 +132,18 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 		if err != nil {
 			return nil, err
 		}
-	case "darwin":
+	} else if isDarwinPlatform(targetPlatforms[0]) {
 		if !xcodeAvailable() {
-			return nil, fmt.Errorf("-target=ios requires XCode")
+			return nil, fmt.Errorf("-target=%s requires XCode", buildTarget)
 		}
 		if pkg.Name != "main" {
-			for _, sdk := range darwinSDKs {
-				for _, arch := range darwinArchs(sdk) {
+			for _, platform := range targetPlatforms {
+				for _, arch := range platformArchs(platform) {
 					// Skip unrequested architectures
 					if !contains(targetArchs, arch) {
 						continue
 					}
-					if err := goBuild(pkg.PkgPath, darwinEnv[sdk+"_"+arch]); err != nil {
+					if err := goBuild(pkg.PkgPath, darwinEnv[platform+"/"+arch]); err != nil {
 						return nil, err
 					}
 				}
@@ -148,7 +153,7 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 		if buildBundleID == "" {
 			return nil, fmt.Errorf("-target=ios requires -bundleid set")
 		}
-		nmpkgs, err = goIOSBuild(pkg, buildBundleID, targetArchs)
+		nmpkgs, err = goIOSBuild(pkg, buildBundleID, targetPlatforms, targetArchs)
 		if err != nil {
 			return nil, err
 		}
@@ -338,7 +343,7 @@ func goModTidyAt(at string, env []string) error {
 	return runCmd(cmd)
 }
 
-func parseBuildTarget(buildTarget string) (os string, archs []string, _ error) {
+func parseBuildTarget(buildTarget string) (platform string, archs []string, _ error) {
 	if buildTarget == "" {
 		return "", nil, fmt.Errorf(`invalid target ""`)
 	}
@@ -346,47 +351,33 @@ func parseBuildTarget(buildTarget string) (os string, archs []string, _ error) {
 	all := false
 	archNames := []string{}
 	for i, p := range strings.Split(buildTarget, ",") {
-		osarch := strings.SplitN(p, "/", 2) // len(osarch) > 0
-		if osarch[0] != "android" && osarch[0] != "ios" {
+		platformArch := strings.SplitN(p, "/", 2) // len(osarch) > 0
+		if platformArch[0] != "android" && platformArch[0] != "ios" {
 			return "", nil, fmt.Errorf(`unsupported os`)
 		}
 
 		if i == 0 {
-			os = osarch[0]
+			platform = platformArch[0]
 		}
 
-		if os != osarch[0] {
+		if platform != platformArch[0] {
 			return "", nil, fmt.Errorf(`cannot target different OSes`)
 		}
 
-		if len(osarch) == 1 {
+		if len(platformArch) == 1 {
 			all = true
 		} else {
-			archNames = append(archNames, osarch[1])
+			archNames = append(archNames, platformArch[1])
 		}
 	}
 
 	// verify all archs are supported one while deduping.
-	isSupported := func(os, arch string) bool {
-		for _, a := range allArchs(os) {
-			if a == arch {
-				return true
-			}
-		}
-		return false
-	}
-
-	targetOS := os
-	if os == "ios" {
-		targetOS = "darwin"
-	}
-
 	seen := map[string]bool{}
 	for _, arch := range archNames {
 		if _, ok := seen[arch]; ok {
 			continue
 		}
-		if !isSupported(os, arch) {
+		if !contains(platformArchs(platform), arch) {
 			return "", nil, fmt.Errorf(`unsupported arch: %q`, arch)
 		}
 
@@ -395,7 +386,64 @@ func parseBuildTarget(buildTarget string) (os string, archs []string, _ error) {
 	}
 
 	if all {
-		return targetOS, allArchs(os), nil
+		archs = platformArchs(platform)
 	}
-	return targetOS, archs, nil
+
+	return platform, archs, nil
+}
+
+// parseBuildTargets parses buildTarget into 1 or more platforms and architectures.
+// Returns an error if buildTarget contains invalid input.
+// Example valid target strings:
+//    android
+//    android/arm64,android/386,android/amd64
+//    ios,simulator,catalyst
+//    macos/amd64
+//    darwin
+func parseBuildTargets(buildTarget string) (targetPlatforms, targetArchs []string, _ error) {
+	if buildTarget == "" {
+		return nil, nil, fmt.Errorf(`invalid target ""`)
+	}
+
+	platforms := map[string]bool{}
+	archs := map[string]bool{}
+
+	var isAndroid, isDarwin bool
+	for _, p := range strings.Split(buildTarget, ",") {
+		tuple := strings.SplitN(p, "/", 2)
+		platform := tuple[0]
+
+		if platform == "android" {
+			isAndroid = true
+		} else if isDarwinPlatform(platform) {
+			isDarwin = true
+		}
+		if isAndroid && isDarwin {
+			return nil, nil, fmt.Errorf(`cannot mix android and darwin platforms`)
+		}
+
+		if len(tuple) == 2 {
+			arch := tuple[1]
+			if !isSupportedArch(platform, arch) {
+				return nil, nil, fmt.Errorf(`unsupported platform/arch: %q`, p)
+			}
+			archs[arch] = true
+		}
+		for _, platform := range expandPlatform(platform) {
+			platforms[platform] = true
+		}
+	}
+
+	for platform := range platforms {
+		targetPlatforms = append(targetPlatforms, platform)
+		for arch := range archs {
+			targetArchs = append(targetArchs, arch)
+		}
+	}
+
+	if len(targetArchs) == 0 {
+		targetArchs = platformArchs(targetPlatforms[0])
+	}
+
+	return targetPlatforms, targetArchs, nil
 }

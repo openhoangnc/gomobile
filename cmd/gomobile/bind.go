@@ -76,19 +76,19 @@ func runBind(cmd *command) error {
 
 	args := cmd.flag.Args()
 
-	targetOS, targetArchs, err := parseBuildTarget(buildTarget)
+	targetPlatforms, targetArchs, err := parseBuildTargets(buildTarget)
 	if err != nil {
 		return fmt.Errorf(`invalid -target=%q: %v`, buildTarget, err)
 	}
 
-	if bindJavaPkg != "" && targetOS != "android" {
-		return fmt.Errorf("-javapkg is supported only for android target")
-	}
-	if bindPrefix != "" && targetOS != "darwin" {
-		return fmt.Errorf("-prefix is supported only for ios target")
-	}
-
-	if targetOS == "android" {
+	isAndroid := targetPlatforms[0] == "android"
+	if isAndroid {
+		if bindJavaPkg != "" {
+			return fmt.Errorf("-javapkg is supported only for android target")
+		}
+		if bindPrefix != "" {
+			return fmt.Errorf("-prefix is supported only for darwin targets")
+		}
 		if _, err := ndkRoot(); err != nil {
 			return err
 		}
@@ -98,7 +98,7 @@ func runBind(cmd *command) error {
 	if !buildN {
 		gobind, err = exec.LookPath("gobind")
 		if err != nil {
-			return errors.New("gobind was not found. Please run gomobile init before trying again.")
+			return errors.New("gobind was not found. Please run gomobile init before trying again")
 		}
 	} else {
 		gobind = "gobind"
@@ -107,7 +107,10 @@ func runBind(cmd *command) error {
 	if len(args) == 0 {
 		args = append(args, ".")
 	}
-	pkgs, err := importPackages(args, targetOS)
+
+	// TODO(ydnar): this should work, unless build tags affect loading a single package.
+	// Should we try to import packages with different build tags per platform?
+	pkgs, err := packages.Load(packagesConfig(targetPlatforms[0]), args...)
 	if err != nil {
 		return err
 	}
@@ -115,26 +118,18 @@ func runBind(cmd *command) error {
 	// check if any of the package is main
 	for _, pkg := range pkgs {
 		if pkg.Name == "main" {
-			return fmt.Errorf("binding 'main' package (%s) is not supported", pkg.PkgPath)
+			return fmt.Errorf(`binding "main" package (%s) is not supported`, pkg.PkgPath)
 		}
 	}
 
-	switch targetOS {
-	case "android":
+	if isAndroid {
 		return goAndroidBind(gobind, pkgs, targetArchs)
-	case "darwin":
+	} else {
 		if !xcodeAvailable() {
-			return fmt.Errorf("-target=ios requires XCode")
+			return fmt.Errorf("-target=%q requires Xcode", buildTarget)
 		}
-		return goIOSBind(gobind, pkgs, targetArchs)
-	default:
-		return fmt.Errorf(`invalid -target=%q`, buildTarget)
+		return goDarwinbind(gobind, pkgs, targetPlatforms, targetArchs)
 	}
-}
-
-func importPackages(args []string, targetOS string) ([]*packages.Package, error) {
-	config := packagesConfig(targetOS)
-	return packages.Load(config, args...)
 }
 
 var (
@@ -212,14 +207,16 @@ func writeFile(filename string, generate func(io.Writer) error) error {
 	return generate(f)
 }
 
-func packagesConfig(targetOS string) *packages.Config {
+func packagesConfig(platform string) *packages.Config {
 	config := &packages.Config{}
 	// Add CGO_ENABLED=1 explicitly since Cgo is disabled when GOOS is different from host OS.
-	config.Env = append(os.Environ(), "GOARCH=arm64", "GOOS="+targetOS, "CGO_ENABLED=1")
+	config.Env = append(os.Environ(), "GOARCH=arm64", "GOOS="+platformOS(platform), "CGO_ENABLED=1")
+
+	// TODO(ydnar): this *should* be better than adding "ios" tag whenever platform is "darwin"
+	// TODO(ydnar): should we have a platformTags() function?
 	tags := buildTags
-	if targetOS == "darwin" {
-		tags = append(tags, "ios")
-	}
+	tags = append(tags, platform)
+
 	if len(tags) > 0 {
 		config.BuildFlags = []string{"-tags=" + strings.Join(tags, ",")}
 	}
@@ -227,14 +224,15 @@ func packagesConfig(targetOS string) *packages.Config {
 }
 
 // getModuleVersions returns a module information at the directory src.
-func getModuleVersions(targetOS string, targetArch string, src string) (*modfile.File, error) {
+func getModuleVersions(targetPlatform string, targetArch string, src string) (*modfile.File, error) {
 	cmd := exec.Command("go", "list")
-	cmd.Env = append(os.Environ(), "GOOS="+targetOS, "GOARCH="+targetArch)
+	cmd.Env = append(os.Environ(), "GOOS="+platformOS(targetPlatform), "GOARCH="+targetArch)
 
+	// TODO(ydnar): this *should* be better than adding "ios" tag whenever platform is "darwin"
+	// TODO(ydnar): should we have a platformTags() function?
 	tags := buildTags
-	if targetOS == "darwin" {
-		tags = append(tags, "ios")
-	}
+	tags = append(tags, targetPlatform)
+
 	// TODO(hyangah): probably we don't need to add all the dependencies.
 	cmd.Args = append(cmd.Args, "-m", "-json", "-tags="+strings.Join(tags, ","), "all")
 	cmd.Dir = src

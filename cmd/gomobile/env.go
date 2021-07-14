@@ -26,35 +26,63 @@ var (
 	bitcodeEnabled bool
 )
 
-func allArchs(targetOS string) []string {
-	switch targetOS {
+// expandPlatform returns a list of currently-supported SDKs for platform.
+func expandPlatform(platform string) (platforms []string) {
+	switch platform {
+	case "android":
+		return []string{"android"}
 	case "ios":
+		return []string{"ios", "simulator"}
+	case "simulator":
+		return []string{"simulator"}
+	case "macos":
+		return []string{"macos"}
+	case "catalyst":
+		return []string{"catalyst"}
+	// The "darwin" platform actually builds for multiple Apple platforms:
+	// iOS, iPadOS, MacCatalyst (iOS on macOS), and macOS.
+	// TODO: support watchOS and tvOS?
+	case "darwin":
+		return darwinPlatforms
+	default:
+		panic(fmt.Sprintf("unexpected platform: %s", platform))
+	}
+}
+
+var darwinPlatforms = []string{"ios", "simulator", "catalyst", "macos"}
+
+func isDarwinPlatform(platform string) bool {
+	return contains(darwinPlatforms, platform)
+}
+
+func platformArchs(platform string) []string {
+	switch platform {
+	case "ios":
+		return []string{"arm64"}
+	case "simulator", "macos", "catalyst", "darwin":
 		return []string{"arm64", "amd64"}
 	case "android":
 		return []string{"arm", "arm64", "386", "amd64"}
 	default:
-		panic(fmt.Sprintf("unexpected target OS: %s", targetOS))
+		panic(fmt.Sprintf("unexpected platform: %s", platform))
 	}
 }
 
-// darwinSDKs is a list of currently-supported Apple platform SDKs.
-// The gomobile "ios" target actually builds for multiple Apple platforms:
-// iOS, iPadOS, MacCatalyst (iOS on macOS), and macOS.
-// TODO: support watchOS and tvOS?
-var darwinSDKs = []string{"simulator", "ios", "catalyst", "macos"}
+func isSupportedArch(platform, arch string) bool {
+	return contains(platformArchs(platform), arch)
+}
 
-func darwinArchs(sdk string) []string {
-	switch sdk {
-	case "simulator":
-		return []string{"arm64", "amd64"}
-	case "ios":
-		return []string{"arm64"}
-	case "catalyst":
-		return []string{"arm64", "amd64"}
-	case "macos":
-		return []string{"arm64", "amd64"}
+// platformOS returns the correct GOOS value for platform.
+func platformOS(platform string) string {
+	switch platform {
+	case "android":
+		return "android"
+	case "ios", "simulator":
+		return "ios"
+	case "macos", "catalyst":
+		return "darwin"
 	default:
-		panic(fmt.Sprintf("unexpected darwin SDK: %s", sdk))
+		panic(fmt.Sprintf("unexpected platform: %s", platform))
 	}
 }
 
@@ -172,18 +200,18 @@ func envInit() (err error) {
 
 	darwinArmNM = "nm"
 	darwinEnv = make(map[string][]string)
-	for _, sdk := range darwinSDKs {
+	for _, platform := range darwinPlatforms {
 		// Catalyst support requires iOS 13+
 		v, _ := strconv.ParseFloat(buildIOSVersion, 64)
-		if sdk == "catalyst" && v < 13.0 {
+		if platform == "catalyst" && v < 13.0 {
 			continue
 		}
 
-		for _, arch := range darwinArchs(sdk) {
+		for _, arch := range platformArchs(platform) {
 			var env []string
 			var goos, goflags, clang, cflags string
 			var err error
-			switch sdk {
+			switch platform {
 			case "ios":
 				goos = "ios"
 				goflags = "-tags=ios"
@@ -210,7 +238,7 @@ func envInit() (err error) {
 				// Note: the SDK is called "macosx", not "macos"
 				clang, cflags, err = envClang("macosx")
 			default:
-				panic(fmt.Errorf("unknown ios target: %q", arch))
+				panic(fmt.Errorf("unknown darwin target: %q", arch))
 			}
 
 			if err != nil {
@@ -231,7 +259,7 @@ func envInit() (err error) {
 				"CGO_LDFLAGS="+cflags+" -arch "+archClang(arch),
 				"CGO_ENABLED=1",
 			)
-			darwinEnv[sdk+"_"+arch] = env
+			darwinEnv[platform+"/"+arch] = env
 		}
 	}
 

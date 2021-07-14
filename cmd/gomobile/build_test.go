@@ -115,20 +115,21 @@ GOOS=android GOARCH=arm CC=$NDK_PATH/toolchains/llvm/prebuilt/{{.NDKARCH}}/bin/a
 `))
 
 func TestParseBuildTargetFlag(t *testing.T) {
-	androidArchs := strings.Join(allArchs("android"), ",")
-	iosArchs := strings.Join(allArchs("ios"), ",")
+	androidArchs := strings.Join(platformArchs("android"), ",")
+	darwinArchs := strings.Join(platformArchs("darwin"), ",")
+	iosArchs := strings.Join(platformArchs("ios"), ",")
 
 	tests := []struct {
-		in        string
-		wantErr   bool
-		wantOS    string
-		wantArchs string
+		in           string
+		wantErr      bool
+		wantPlatform string
+		wantArchs    string
 	}{
 		{"android", false, "android", androidArchs},
 		{"android,android/arm", false, "android", androidArchs},
 		{"android/arm", false, "android", "arm"},
 
-		{"ios", false, "darwin", iosArchs},
+		{"ios", false, "darwin", darwinArchs},
 		{"ios,ios/arm64", false, "darwin", iosArchs},
 		{"ios/arm64", false, "darwin", "arm64"},
 		{"ios/amd64", false, "darwin", "amd64"},
@@ -143,16 +144,16 @@ func TestParseBuildTargetFlag(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		gotOS, gotArchs, err := parseBuildTarget(tc.in)
+		gotPlatform, gotArchs, err := parseBuildTarget(tc.in)
 		if tc.wantErr {
 			if err == nil {
-				t.Errorf("-target=%q; want error, got (%q, %q, nil)", tc.in, gotOS, gotArchs)
+				t.Errorf("-target=%q; want error, got (%q, %q, nil)", tc.in, gotPlatform, gotArchs)
 			}
 			continue
 		}
-		if err != nil || gotOS != tc.wantOS || strings.Join(gotArchs, ",") != tc.wantArchs {
+		if err != nil || gotPlatform != tc.wantPlatform || strings.Join(gotArchs, ",") != tc.wantArchs {
 			t.Errorf("-target=%q; want (%v, [%v], nil), got (%q, %q, %v)",
-				tc.in, tc.wantOS, tc.wantArchs, gotOS, gotArchs, err)
+				tc.in, tc.wantPlatform, tc.wantArchs, gotPlatform, gotArchs, err)
 		}
 	}
 }
