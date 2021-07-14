@@ -198,12 +198,12 @@ GOOS=ios CGO_ENABLED=1 gobind -lang=go,objc -outdir=$WORK -tags=ios{{if .Prefix}
 rm -r -f "{{.Output}}.xcframework"
 mkdir -p $WORK/src
 PWD=$WORK/src GOOS=ios GOARCH=arm64 GOFLAGS=-tags=ios CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go mod tidy
-PWD=$WORK/src GOOS=ios GOARCH=arm64 GOFLAGS=-tags=ios CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go build -x -buildmode=c-archive -o $WORK/{{.Output}}-arm64.a ./gobind
+PWD=$WORK/src GOOS=ios GOARCH=arm64 GOFLAGS=-tags=ios CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go build -x -buildmode=c-archive -o $WORK/{{.Output}}-ios-arm64.a ./gobind
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
 ln -s A $WORK/ios/{{.Output}}.framework/Versions/Current
 ln -s Versions/Current/Headers $WORK/ios/{{.Output}}.framework/Headers
 ln -s Versions/Current/{{.Output}} $WORK/ios/{{.Output}}.framework/{{.Output}}
-xcrun lipo -create -arch arm64 $WORK/{{.Output}}-arm64.a -o $WORK/ios/{{.Output}}.framework/Versions/A/{{.Output}}
+xcrun lipo -create -arch arm64 $WORK/{{.Output}}-ios-arm64.a -o $WORK/ios/{{.Output}}.framework/Versions/A/{{.Output}}
 cp $WORK/src/gobind/{{.Prefix}}Asset.objc.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
 cp $WORK/src/gobind/Universe.objc.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
@@ -216,26 +216,6 @@ ln -s Versions/Current/Resources $WORK/ios/{{.Output}}.framework/Resources
 mkdir -p $WORK/ios/{{.Output}}.framework/Resources
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Modules
 ln -s Versions/Current/Modules $WORK/ios/{{.Output}}.framework/Modules
-mkdir -p $WORK/src
-PWD=$WORK/src GOOS=ios GOARCH=arm64 GOFLAGS=-tags=ios,simulator CC=iphonesimulator-clang CXX=iphonesimulator-clang++ CGO_CFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go mod tidy
-PWD=$WORK/src GOOS=ios GOARCH=arm64 GOFLAGS=-tags=ios,simulator CC=iphonesimulator-clang CXX=iphonesimulator-clang++ CGO_CFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphonesimulator -mios-simulator-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go build -x -buildmode=c-archive -o $WORK/{{.Output}}-arm64.a ./gobind
-mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
-ln -s A $WORK/simulator/{{.Output}}.framework/Versions/Current
-ln -s Versions/Current/Headers $WORK/simulator/{{.Output}}.framework/Headers
-ln -s Versions/Current/{{.Output}} $WORK/simulator/{{.Output}}.framework/{{.Output}}
-xcrun lipo -create -arch arm64 $WORK/{{.Output}}-arm64.a -o $WORK/simulator/{{.Output}}.framework/Versions/A/{{.Output}}
-cp $WORK/src/gobind/{{.Prefix}}Asset.objc.h $WORK/simulator/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
-mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
-cp $WORK/src/gobind/Universe.objc.h $WORK/simulator/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
-mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
-cp $WORK/src/gobind/ref.h $WORK/simulator/{{.Output}}.framework/Versions/A/Headers/ref.h
-mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
-mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Headers
-mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Resources
-ln -s Versions/Current/Resources $WORK/simulator/{{.Output}}.framework/Resources
-mkdir -p $WORK/simulator/{{.Output}}.framework/Resources
-mkdir -p $WORK/simulator/{{.Output}}.framework/Versions/A/Modules
-ln -s Versions/Current/Modules $WORK/simulator/{{.Output}}.framework/Modules
 xcodebuild -create-xcframework -framework $WORK/ios/{{.Output}}.framework -framework $WORK/simulator/{{.Output}}.framework -output {{.Output}}.xcframework
 `))
 
