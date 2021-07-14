@@ -408,13 +408,14 @@ func parseBuildTargets(buildTarget string) (targetPlatforms, targetArchs []strin
 	archs := map[string]bool{}
 
 	var isAndroid, isDarwin bool
-	for _, p := range strings.Split(buildTarget, ",") {
-		tuple := strings.SplitN(p, "/", 2)
+	for _, target := range strings.Split(buildTarget, ",") {
+		tuple := strings.SplitN(target, "/", 2)
 		platform := tuple[0]
 
-		if platform == "android" {
+		if isAndroidPlatform(platform) {
 			isAndroid = true
-		} else if isDarwinPlatform(platform) {
+		}
+		if isDarwinPlatform(platform) {
 			isDarwin = true
 		}
 		if isAndroid && isDarwin {
@@ -424,12 +425,12 @@ func parseBuildTargets(buildTarget string) (targetPlatforms, targetArchs []strin
 		if len(tuple) == 2 {
 			arch := tuple[1]
 			if !isSupportedArch(platform, arch) {
-				return nil, nil, fmt.Errorf(`unsupported platform/arch: %q`, p)
+				return nil, nil, fmt.Errorf(`unsupported platform/arch: %q`, target)
 			}
 			archs[arch] = true
 		}
-		for _, platform := range expandPlatform(platform) {
-			platforms[platform] = true
+		for _, p := range expandPlatform(platform) {
+			platforms[p] = true
 		}
 	}
 
