@@ -160,7 +160,7 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 		if buildBundleID == "" {
 			return nil, fmt.Errorf("-target=ios requires -bundleid set")
 		}
-		nmpkgs, err = goIOSBuild(pkg, buildBundleID, targetPlatforms, targetArchs)
+		nmpkgs, err = goDarwinBuild(pkg, buildBundleID, targetPlatforms, targetArchs)
 		if err != nil {
 			return nil, err
 		}

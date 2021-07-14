@@ -20,7 +20,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func goIOSBuild(pkg *packages.Package, bundleID string, targetPlatforms, targetArchs []string) (map[string]bool, error) {
+func goDarwinBuild(pkg *packages.Package, bundleID string, targetPlatforms, targetArchs []string) (map[string]bool, error) {
 	src := pkg.PkgPath
 	if buildO != "" && !strings.HasSuffix(buildO, ".app") {
 		return nil, fmt.Errorf("-o must have an .app for -target=ios")
