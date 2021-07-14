@@ -81,8 +81,7 @@ func runBind(cmd *command) error {
 		return fmt.Errorf(`invalid -target=%q: %v`, buildTarget, err)
 	}
 
-	isAndroid := targetPlatforms[0] == "android"
-	if isAndroid {
+	if isAndroidPlatform(targetPlatforms[0]) {
 		if bindJavaPkg != "" {
 			return fmt.Errorf("-javapkg is supported only for android target")
 		}
@@ -122,13 +121,16 @@ func runBind(cmd *command) error {
 		}
 	}
 
-	if isAndroid {
+	switch {
+	case isAndroidPlatform(targetPlatforms[0]):
 		return goAndroidBind(gobind, pkgs, targetArchs)
-	} else {
+	case isDarwinPlatform(targetPlatforms[0]):
 		if !xcodeAvailable() {
 			return fmt.Errorf("-target=%q requires Xcode", buildTarget)
 		}
 		return goDarwinbind(gobind, pkgs, targetPlatforms, targetArchs)
+	default:
+		return fmt.Errorf(`invalid -target=%q`, buildTarget)
 	}
 }
 

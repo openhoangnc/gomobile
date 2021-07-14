@@ -49,6 +49,10 @@ func expandPlatform(platform string) (platforms []string) {
 	}
 }
 
+func isAndroidPlatform(platform string) bool {
+	return platform == "android"
+}
+
 var darwinPlatforms = []string{"ios", "simulator", "catalyst", "macos"}
 
 func isDarwinPlatform(platform string) bool {

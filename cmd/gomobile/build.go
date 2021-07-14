@@ -86,8 +86,6 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 		return nil, fmt.Errorf(`invalid -target=%q: %v`, buildTarget, err)
 	}
 
-	isAndroid := targetPlatforms[0] == "android"
-
 	var buildPath string
 	switch len(args) {
 	case 0:
@@ -119,7 +117,8 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 	}
 
 	var nmpkgs map[string]bool
-	if isAndroid {
+	switch {
+	case isAndroidPlatform(targetPlatforms[0]):
 		if pkg.Name != "main" {
 			for _, arch := range targetArchs {
 				if err := goBuild(pkg.PkgPath, androidEnv[arch]); err != nil {
@@ -132,7 +131,7 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 		if err != nil {
 			return nil, err
 		}
-	} else if isDarwinPlatform(targetPlatforms[0]) {
+	case isDarwinPlatform(targetPlatforms[0]):
 		if !xcodeAvailable() {
 			return nil, fmt.Errorf("-target=%s requires XCode", buildTarget)
 		}
