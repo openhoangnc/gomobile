@@ -109,9 +109,9 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 				}
 			}
 
-			path, err := goDarwinBindArchive(name, env, filepath.Join(tmpdir, "src"))
+			path, err := goDarwinBindArchive(name+"-"+platform+"-"+arch, env, filepath.Join(tmpdir, "src"))
 			if err != nil {
-				return fmt.Errorf("darwin-%s: %v", arch, err)
+				return fmt.Errorf("%s/%s: %v", platform, arch, err)
 			}
 
 			versionsDir := filepath.Join(frameworkDir, "Versions")
@@ -254,8 +254,7 @@ var iosModuleMapTmpl = template.Must(template.New("iosmmap").Parse(`framework mo
 }`))
 
 func goDarwinBindArchive(name string, env []string, gosrc string) (string, error) {
-	arch := getenv(env, "GOARCH")
-	archive := filepath.Join(tmpdir, name+"-"+arch+".a")
+	archive := filepath.Join(tmpdir, name+".a")
 	err := goBuildAt(gosrc, "./gobind", env, "-buildmode=c-archive", "-o", archive)
 	if err != nil {
 		return "", err
