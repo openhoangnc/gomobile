@@ -32,13 +32,13 @@ func expandPlatform(platform string) (platforms []string, _ error) {
 		return []string{"android"}, nil
 	case "ios":
 		// Preserve existing -target=ios behavior
-		return []string{"ios", "simulator"}, nil
-	case "simulator":
-		return []string{"simulator"}, nil
+		return []string{"ios", "iossimulator"}, nil
+	case "iossimulator":
+		return []string{"iossimulator"}, nil
 	case "macos":
 		return []string{"macos"}, nil
-	case "catalyst":
-		return []string{"catalyst"}, nil
+	case "maccatalyst":
+		return []string{"maccatalyst"}, nil
 	// The "darwin" platform actually builds for multiple Apple platforms:
 	// iOS, iPadOS, MacCatalyst (iOS on macOS), and macOS.
 	// TODO: support watchOS and tvOS?
@@ -57,17 +57,17 @@ func isDarwinPlatform(platform string) bool {
 	return contains(darwinPlatforms, platform)
 }
 
-var darwinPlatforms = []string{"ios", "simulator", "catalyst", "macos"}
+var darwinPlatforms = []string{"ios", "iossimulator", "maccatalyst", "macos"}
 
 func platformArchs(platform string) []string {
 	switch platform {
 	case "ios":
 		// Only build iOS on arm64
 		return []string{"arm64"}
-	case "simulator":
+	case "iossimulator":
 		// Only build iOS simulator on amd64
 		return []string{"amd64"}
-	case "macos", "catalyst", "darwin":
+	case "macos", "maccatalyst", "darwin":
 		return []string{"arm64", "amd64"}
 	case "android":
 		return []string{"arm", "arm64", "386", "amd64"}
@@ -85,9 +85,9 @@ func platformOS(platform string) string {
 	switch platform {
 	case "android":
 		return "android"
-	case "ios", "simulator":
+	case "ios", "iossimulator":
 		return "ios"
-	case "macos", "catalyst":
+	case "macos", "maccatalyst":
 		return "darwin"
 	default:
 		panic(fmt.Sprintf("unexpected platform: %s", platform))
@@ -100,11 +100,11 @@ func platformTags(platform string) []string {
 		return []string{"android"}
 	case "ios":
 		return []string{"ios"}
-	case "simulator":
+	case "iossimulator":
 		return []string{"ios", "iossimulator"}
 	case "macos":
 		return []string{"macos"}
-	case "catalyst":
+	case "maccatalyst":
 		return []string{"macos", "maccatalyst"}
 	default:
 		panic(fmt.Sprintf("unexpected platform: %s", platform))
@@ -236,12 +236,12 @@ func envInit() (err error) {
 				goflags = "-tags=ios"
 				clang, cflags, err = envClang("iphoneos")
 				cflags += " -miphoneos-version-min=" + buildIOSVersion
-			case "simulator":
+			case "iossimulator":
 				goos = "ios"
 				goflags = "-tags=ios,simulator"
 				clang, cflags, err = envClang("iphonesimulator")
 				cflags += " -mios-simulator-version-min=" + buildIOSVersion
-			case "catalyst":
+			case "maccatalyst":
 				goos = "darwin"
 				goflags = "-tags=ios,macos,catalyst"
 				clang, cflags, err = envClang("macosx")

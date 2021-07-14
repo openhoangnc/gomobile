@@ -216,7 +216,7 @@ ln -s Versions/Current/Resources $WORK/ios/{{.Output}}.framework/Resources
 mkdir -p $WORK/ios/{{.Output}}.framework/Resources
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Modules
 ln -s Versions/Current/Modules $WORK/ios/{{.Output}}.framework/Modules
-xcodebuild -create-xcframework -framework $WORK/ios/{{.Output}}.framework -framework $WORK/simulator/{{.Output}}.framework -output {{.Output}}.xcframework
+xcodebuild -create-xcframework -framework $WORK/ios/{{.Output}}.framework -framework $WORK/iossimulator/{{.Output}}.framework -output {{.Output}}.xcframework
 `))
 
 func TestBindIOSAll(t *testing.T) {

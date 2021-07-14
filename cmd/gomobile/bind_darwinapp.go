@@ -72,7 +72,7 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 	for _, platform := range targetPlatforms {
 		// Catalyst support requires iOS 13+
 		v, _ := strconv.ParseFloat(buildIOSVersion, 64)
-		if platform == "catalyst" && v < 13.0 {
+		if platform == "maccatalyst" && v < 13.0 {
 			return errors.New("catalyst requires -iosversion=13 or higher")
 		}
 
