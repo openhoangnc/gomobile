@@ -31,6 +31,7 @@ func expandPlatform(platform string) (platforms []string, _ error) {
 	case "android":
 		return []string{"android"}, nil
 	case "ios":
+		// Preserve existing -target=ios behavior
 		return []string{"ios", "simulator"}, nil
 	case "simulator":
 		return []string{"simulator"}, nil
@@ -61,8 +62,12 @@ var darwinPlatforms = []string{"ios", "simulator", "catalyst", "macos"}
 func platformArchs(platform string) []string {
 	switch platform {
 	case "ios":
+		// Only build iOS on arm64
 		return []string{"arm64"}
-	case "simulator", "macos", "catalyst", "darwin":
+	case "simulator":
+		// Only build iOS simulator on amd64
+		return []string{"amd64"}
+	case "macos", "catalyst", "darwin":
 		return []string{"arm64", "amd64"}
 	case "android":
 		return []string{"arm", "arm64", "386", "amd64"}
