@@ -8,17 +8,13 @@
 package gl
 
 /*
-#cgo ios,!macos   LDFLAGS: -framework OpenGLES
+#cgo ios          LDFLAGS: -framework OpenGLES
 #cgo darwin,!ios  LDFLAGS: -framework OpenGL
-#cgo catalyst     LDFLAGS: -framework OpenGL
-#cgo macos        LDFLAGS: -framework OpenGL
-
 #cgo linux        LDFLAGS: -lGLESv2
 #cgo openbsd      LDFLAGS: -L/usr/X11R6/lib/ -lGLESv2
 
 #cgo android      CFLAGS: -Dos_android
-#cgo ios,!macos   CFLAGS: -Dos_ios
-#cgo macos        CFLAGS: -Dos_macos
+#cgo ios          CFLAGS: -Dos_ios
 #cgo darwin,!ios  CFLAGS: -Dos_macos
 #cgo darwin       CFLAGS: -DGL_SILENCE_DEPRECATION
 #cgo linux        CFLAGS: -Dos_linux
