@@ -52,11 +52,11 @@ func isAndroidPlatform(platform string) bool {
 	return platform == "android"
 }
 
-var darwinPlatforms = []string{"ios", "simulator", "catalyst", "macos"}
-
 func isDarwinPlatform(platform string) bool {
 	return contains(darwinPlatforms, platform)
 }
+
+var darwinPlatforms = []string{"ios", "simulator", "catalyst", "macos"}
 
 func platformArchs(platform string) []string {
 	switch platform {
@@ -84,6 +84,23 @@ func platformOS(platform string) string {
 		return "ios"
 	case "macos", "catalyst":
 		return "darwin"
+	default:
+		panic(fmt.Sprintf("unexpected platform: %s", platform))
+	}
+}
+
+func platformTags(platform string) []string {
+	switch platform {
+	case "android":
+		return []string{"android"}
+	case "ios":
+		return []string{"ios"}
+	case "simulator":
+		return []string{"ios", "iossimulator"}
+	case "macos":
+		return []string{"macos"}
+	case "catalyst":
+		return []string{"macos", "maccatalyst"}
 	default:
 		panic(fmt.Sprintf("unexpected platform: %s", platform))
 	}

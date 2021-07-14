@@ -209,15 +209,12 @@ func writeFile(filename string, generate func(io.Writer) error) error {
 	return generate(f)
 }
 
-func packagesConfig(platform string) *packages.Config {
+func packagesConfig(targetPlatform string) *packages.Config {
 	config := &packages.Config{}
 	// Add CGO_ENABLED=1 explicitly since Cgo is disabled when GOOS is different from host OS.
-	config.Env = append(os.Environ(), "GOARCH=arm64", "GOOS="+platformOS(platform), "CGO_ENABLED=1")
+	config.Env = append(os.Environ(), "GOARCH=arm64", "GOOS="+platformOS(targetPlatform), "CGO_ENABLED=1")
 
-	// TODO(ydnar): this *should* be better than adding "ios" tag whenever platform is "darwin"
-	// TODO(ydnar): should we have a platformTags() function?
-	tags := buildTags
-	tags = append(tags, platform)
+	tags := append(buildTags[:], platformTags(targetPlatform)...)
 
 	if len(tags) > 0 {
 		config.BuildFlags = []string{"-tags=" + strings.Join(tags, ",")}
@@ -230,10 +227,7 @@ func getModuleVersions(targetPlatform string, targetArch string, src string) (*m
 	cmd := exec.Command("go", "list")
 	cmd.Env = append(os.Environ(), "GOOS="+platformOS(targetPlatform), "GOARCH="+targetArch)
 
-	// TODO(ydnar): this *should* be better than adding "ios" tag whenever platform is "darwin"
-	// TODO(ydnar): should we have a platformTags() function?
-	tags := buildTags
-	tags = append(tags, targetPlatform)
+	tags := append(buildTags[:], platformTags(targetPlatform)...)
 
 	// TODO(hyangah): probably we don't need to add all the dependencies.
 	cmd.Args = append(cmd.Args, "-m", "-json", "-tags="+strings.Join(tags, ","), "all")

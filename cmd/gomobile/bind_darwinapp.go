@@ -26,8 +26,8 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 	)
 	cmd.Env = append(cmd.Env, "GOOS=ios")
 	cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
-	// FIXME: support binding against macOS, macCatalyst, etc.
-	tags := append(buildTags, "ios")
+	// TODO(ydnar): move this cmd into the inner platform loop below
+	tags := append(buildTags, platformTags(targetPlatforms[0])...)
 	cmd.Args = append(cmd.Args, "-tags="+strings.Join(tags, ","))
 	if bindPrefix != "" {
 		cmd.Args = append(cmd.Args, "-prefix="+bindPrefix)
