@@ -76,7 +76,7 @@ func runBind(cmd *command) error {
 
 	args := cmd.flag.Args()
 
-	targetPlatforms, targetArchs, err := parseBuildTargets(buildTarget)
+	targetPlatforms, targetArchs, err := parseBuildTarget(buildTarget)
 	if err != nil {
 		return fmt.Errorf(`invalid -target=%q: %v`, buildTarget, err)
 	}

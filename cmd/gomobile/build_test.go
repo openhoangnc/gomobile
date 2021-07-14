@@ -117,43 +117,44 @@ GOOS=android GOARCH=arm CC=$NDK_PATH/toolchains/llvm/prebuilt/{{.NDKARCH}}/bin/a
 func TestParseBuildTargetFlag(t *testing.T) {
 	androidArchs := strings.Join(platformArchs("android"), ",")
 	darwinArchs := strings.Join(platformArchs("darwin"), ",")
-	iosArchs := strings.Join(platformArchs("ios"), ",")
 
 	tests := []struct {
-		in           string
-		wantErr      bool
-		wantPlatform string
-		wantArchs    string
+		in            string
+		wantErr       bool
+		wantPlatforms string
+		wantArchs     string
 	}{
 		{"android", false, "android", androidArchs},
 		{"android,android/arm", false, "android", androidArchs},
 		{"android/arm", false, "android", "arm"},
 
-		{"ios", false, "darwin", darwinArchs},
-		{"ios,ios/arm64", false, "darwin", iosArchs},
-		{"ios/arm64", false, "darwin", "arm64"},
-		{"ios/amd64", false, "darwin", "amd64"},
+		{"ios", false, "ios,simulator", darwinArchs},
+		{"ios,ios/arm64", false, "ios,simulator", darwinArchs},
+		{"ios/arm64", false, "ios,simulator", "arm64"},
 
 		{"", true, "", ""},
 		{"linux", true, "", ""},
 		{"android/x86", true, "", ""},
 		{"android/arm5", true, "", ""},
+		{"ios/amd64", true, "", ""},
 		{"ios/mips", true, "", ""},
 		{"android,ios", true, "", ""},
 		{"ios,android", true, "", ""},
 	}
 
 	for _, tc := range tests {
-		gotPlatform, gotArchs, err := parseBuildTarget(tc.in)
+		p, a, err := parseBuildTarget(tc.in)
+		gotPlatforms := strings.Join(p, ",")
+		gotArchs := strings.Join(a, ",")
 		if tc.wantErr {
 			if err == nil {
-				t.Errorf("-target=%q; want error, got (%q, %q, nil)", tc.in, gotPlatform, gotArchs)
+				t.Errorf("-target=%q; want error, got (%q, %q, nil)", tc.in, gotPlatforms, gotArchs)
 			}
 			continue
 		}
-		if err != nil || gotPlatform != tc.wantPlatform || strings.Join(gotArchs, ",") != tc.wantArchs {
-			t.Errorf("-target=%q; want (%v, [%v], nil), got (%q, %q, %v)",
-				tc.in, tc.wantPlatform, tc.wantArchs, gotPlatform, gotArchs, err)
+		if err != nil || gotPlatforms != tc.wantPlatforms || gotArchs != tc.wantArchs {
+			t.Errorf("-target=%q; want (%q, %q, nil), got (%q, %q, %v)",
+				tc.in, tc.wantPlatforms, tc.wantArchs, gotPlatforms, gotArchs, err)
 		}
 	}
 }

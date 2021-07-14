@@ -83,7 +83,7 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 
 	args := cmd.flag.Args()
 
-	targetPlatforms, targetArchs, err := parseBuildTargets(buildTarget)
+	targetPlatforms, targetArchs, err := parseBuildTarget(buildTarget)
 	if err != nil {
 		return nil, fmt.Errorf(`invalid -target=%q: %v`, buildTarget, err)
 	}
@@ -350,56 +350,7 @@ func goModTidyAt(at string, env []string) error {
 	return runCmd(cmd)
 }
 
-func parseBuildTarget(buildTarget string) (platform string, archs []string, _ error) {
-	if buildTarget == "" {
-		return "", nil, fmt.Errorf(`invalid target ""`)
-	}
-
-	all := false
-	archNames := []string{}
-	for i, p := range strings.Split(buildTarget, ",") {
-		platformArch := strings.SplitN(p, "/", 2) // len(osarch) > 0
-		if platformArch[0] != "android" && platformArch[0] != "ios" {
-			return "", nil, fmt.Errorf(`unsupported os`)
-		}
-
-		if i == 0 {
-			platform = platformArch[0]
-		}
-
-		if platform != platformArch[0] {
-			return "", nil, fmt.Errorf(`cannot target different OSes`)
-		}
-
-		if len(platformArch) == 1 {
-			all = true
-		} else {
-			archNames = append(archNames, platformArch[1])
-		}
-	}
-
-	// verify all archs are supported one while deduping.
-	seen := map[string]bool{}
-	for _, arch := range archNames {
-		if _, ok := seen[arch]; ok {
-			continue
-		}
-		if !contains(platformArchs(platform), arch) {
-			return "", nil, fmt.Errorf(`unsupported arch: %q`, arch)
-		}
-
-		seen[arch] = true
-		archs = append(archs, arch)
-	}
-
-	if all {
-		archs = platformArchs(platform)
-	}
-
-	return platform, archs, nil
-}
-
-// parseBuildTargets parses buildTarget into 1 or more platforms and architectures.
+// parseBuildTarget parses buildTarget into 1 or more platforms and architectures.
 // Returns an error if buildTarget contains invalid input.
 // Example valid target strings:
 //    android
@@ -407,7 +358,7 @@ func parseBuildTarget(buildTarget string) (platform string, archs []string, _ er
 //    ios,simulator,catalyst
 //    macos/amd64
 //    darwin
-func parseBuildTargets(buildTarget string) (targetPlatforms, targetArchs []string, _ error) {
+func parseBuildTarget(buildTarget string) (targetPlatforms, targetArchs []string, _ error) {
 	if buildTarget == "" {
 		return nil, nil, fmt.Errorf(`invalid target ""`)
 	}
@@ -419,6 +370,7 @@ func parseBuildTargets(buildTarget string) (targetPlatforms, targetArchs []strin
 	for _, target := range strings.Split(buildTarget, ",") {
 		tuple := strings.SplitN(target, "/", 2)
 		platform := tuple[0]
+		hasArch := len(tuple) == 2
 
 		if isAndroidPlatform(platform) {
 			isAndroid = true
@@ -430,27 +382,34 @@ func parseBuildTargets(buildTarget string) (targetPlatforms, targetArchs []strin
 			return nil, nil, fmt.Errorf(`cannot mix android and darwin platforms`)
 		}
 
-		for _, p := range expandPlatform(platform) {
-			platforms[p] = true
+		expanded, err := expandPlatform(platform)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, p := range expanded {
+			if !platforms[p] {
+				platforms[p] = true
+				targetPlatforms = append(targetPlatforms, p)
+				if !hasArch {
+					for _, arch := range platformArchs(p) {
+						if !archs[arch] {
+							archs[arch] = true
+							targetArchs = append(targetArchs, arch)
+						}
+					}
+				}
+			}
 		}
 
-		if len(tuple) == 2 {
+		if hasArch {
 			arch := tuple[1]
 			if !isSupportedArch(platform, arch) {
 				return nil, nil, fmt.Errorf(`unsupported platform/arch: %q`, target)
 			}
-			archs[arch] = true
-		} else {
-			for _, arch := range platformArchs(platform) {
+			if !archs[arch] {
 				archs[arch] = true
+				targetArchs = append(targetArchs, arch)
 			}
-		}
-	}
-
-	for platform := range platforms {
-		targetPlatforms = append(targetPlatforms, platform)
-		for arch := range archs {
-			targetArchs = append(targetArchs, arch)
 		}
 	}
 

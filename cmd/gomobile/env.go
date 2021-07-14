@@ -26,25 +26,25 @@ var (
 )
 
 // expandPlatform returns a list of currently-supported SDKs for platform.
-func expandPlatform(platform string) (platforms []string) {
+func expandPlatform(platform string) (platforms []string, _ error) {
 	switch platform {
 	case "android":
-		return []string{"android"}
+		return []string{"android"}, nil
 	case "ios":
-		return []string{"ios", "simulator"}
+		return []string{"ios", "simulator"}, nil
 	case "simulator":
-		return []string{"simulator"}
+		return []string{"simulator"}, nil
 	case "macos":
-		return []string{"macos"}
+		return []string{"macos"}, nil
 	case "catalyst":
-		return []string{"catalyst"}
+		return []string{"catalyst"}, nil
 	// The "darwin" platform actually builds for multiple Apple platforms:
 	// iOS, iPadOS, MacCatalyst (iOS on macOS), and macOS.
 	// TODO: support watchOS and tvOS?
 	case "darwin":
-		return darwinPlatforms
+		return darwinPlatforms, nil
 	default:
-		panic(fmt.Sprintf("unexpected platform: %s", platform))
+		return nil, fmt.Errorf("unexpected platform: %s", platform)
 	}
 }
 
