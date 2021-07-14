@@ -8,11 +8,13 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
@@ -137,6 +139,12 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 		}
 		if pkg.Name != "main" {
 			for _, platform := range targetPlatforms {
+				// Catalyst support requires iOS 13+
+				v, _ := strconv.ParseFloat(buildIOSVersion, 64)
+				if platform == "catalyst" && v < 13.0 {
+					return nil, errors.New("catalyst requires -iosversion=13 or higher")
+				}
+
 				for _, arch := range platformArchs(platform) {
 					// Skip unrequested architectures
 					if !contains(targetArchs, arch) {

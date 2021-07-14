@@ -5,10 +5,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -68,6 +70,12 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 	// every target has at least one arch (arm64 and x86_64)
 	var frameworkDirs []string
 	for _, platform := range targetPlatforms {
+		// Catalyst support requires iOS 13+
+		v, _ := strconv.ParseFloat(buildIOSVersion, 64)
+		if platform == "catalyst" && v < 13.0 {
+			return errors.New("catalyst requires -iosversion=13 or higher")
+		}
+
 		frameworkDir := filepath.Join(tmpdir, platform, title+".framework")
 		frameworkDirs = append(frameworkDirs, frameworkDir)
 

@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 )
 
@@ -205,12 +204,6 @@ func envInit() (err error) {
 	darwinArmNM = "nm"
 	darwinEnv = make(map[string][]string)
 	for _, platform := range darwinPlatforms {
-		// Catalyst support requires iOS 13+
-		v, _ := strconv.ParseFloat(buildIOSVersion, 64)
-		if platform == "catalyst" && v < 13.0 {
-			continue
-		}
-
 		for _, arch := range platformArchs(platform) {
 			var env []string
 			var goos, goflags, clang, cflags string
