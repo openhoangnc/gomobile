@@ -105,7 +105,9 @@ func platformTags(platform string) []string {
 	case "macos":
 		return []string{"macos"}
 	case "maccatalyst":
-		return []string{"macos", "maccatalyst"}
+		// TODO(ydnar): remove tag "ios" when cgo supports Catalyst
+		// See golang.org/issues/47228
+		return []string{"ios", "macos", "maccatalyst"}
 	default:
 		panic(fmt.Sprintf("unexpected platform: %s", platform))
 	}
