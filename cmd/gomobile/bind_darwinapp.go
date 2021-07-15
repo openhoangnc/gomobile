@@ -56,6 +56,30 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 		frameworkDir := filepath.Join(tmpdir, platform, title+".framework")
 		frameworkDirs = append(frameworkDirs, frameworkDir)
 
+		outDir := filepath.Join(tmpdir, platform)
+		outSrcDir := filepath.Join(outDir, "src")
+		gobindDir := filepath.Join(outSrcDir, "gobind")
+
+		// Run gobind once per platform to generate the bindings
+		cmd := exec.Command(
+			gobind,
+			"-lang=go,objc",
+			"-outdir="+outDir,
+		)
+		cmd.Env = append(cmd.Env, "GOOS="+platformOS(platform))
+		cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
+		tags := append(buildTags[:], platformTags(platform)...)
+		cmd.Args = append(cmd.Args, "-tags="+strings.Join(tags, ","))
+		if bindPrefix != "" {
+			cmd.Args = append(cmd.Args, "-prefix="+bindPrefix)
+		}
+		for _, p := range pkgs {
+			cmd.Args = append(cmd.Args, p.PkgPath)
+		}
+		if err := runCmd(cmd); err != nil {
+			return err
+		}
+
 		var numArchs int
 		for _, arch := range platformArchs(platform) {
 			// Skip unrequested architectures
@@ -64,43 +88,17 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 			}
 			numArchs++
 
-			env := darwinEnv[platform+"/"+arch][:]
-
-			outDir := filepath.Join(tmpdir, platform, arch)
-			outSrcDir := filepath.Join(outDir, "src")
-			gobindDir := filepath.Join(outSrcDir, "gobind")
-
-			if err := writeGoMod(outDir, platform, arch); err != nil {
-				return err
-			}
-
-			// Run gobind to generate the bindings
-			cmd := exec.Command(
-				gobind,
-				"-lang=go,objc",
-				"-outdir="+outDir,
-			)
-			// TODO(ydnar): use darwinEnv here?
-			// cmd.Env = append(cmd.Env, "GOOS="+platformOS(platform))
-			// cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
-			cmd.Env = append(cmd.Env, env...)
-			tags := append(buildTags[:], platformTags(targetPlatforms[0])...)
-			cmd.Args = append(cmd.Args, "-tags="+strings.Join(tags, ","))
-			if bindPrefix != "" {
-				cmd.Args = append(cmd.Args, "-prefix="+bindPrefix)
-			}
-			for _, p := range pkgs {
-				cmd.Args = append(cmd.Args, p.PkgPath)
-			}
-			if err := runCmd(cmd); err != nil {
-				return err
-			}
-
 			fileBases := make([]string, len(pkgs)+1)
 			for i, pkg := range pkgs {
 				fileBases[i] = bindPrefix + strings.Title(pkg.Name)
 			}
 			fileBases[len(fileBases)-1] = "Universe"
+
+			env := darwinEnv[platform+"/"+arch][:]
+
+			if err := writeGoMod(outDir, platform, arch); err != nil {
+				return err
+			}
 
 			// Add the generated packages to GOPATH for reverse bindings.
 			gopath := fmt.Sprintf("GOPATH=%s%c%s", outDir, filepath.ListSeparator, goEnv("GOPATH"))
