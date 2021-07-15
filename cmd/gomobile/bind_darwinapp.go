@@ -93,7 +93,7 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 
 			env := darwinEnv[platform+"/"+arch]
 
-			if err := writeGoMod(platform, getenv(env, "GOARCH")); err != nil {
+			if err := writeGoMod(platform, arch); err != nil {
 				return err
 			}
 
