@@ -39,11 +39,6 @@ func expandPlatform(platform string) (platforms []string, _ error) {
 		return []string{"macos"}, nil
 	case "maccatalyst":
 		return []string{"maccatalyst"}, nil
-	// The "darwin" platform actually builds for multiple Apple platforms:
-	// iOS, iPadOS, MacCatalyst (iOS on macOS), and macOS.
-	// TODO: support watchOS and tvOS?
-	case "darwin":
-		return darwinPlatforms, nil
 	default:
 		return nil, fmt.Errorf("unexpected platform: %s", platform)
 	}
@@ -67,7 +62,7 @@ func platformArchs(platform string) []string {
 	case "iossimulator":
 		// Only build iOS simulator on amd64
 		return []string{"amd64"}
-	case "macos", "maccatalyst", "darwin":
+	case "macos", "maccatalyst":
 		return []string{"arm64", "amd64"}
 	case "android":
 		return []string{"arm", "arm64", "386", "amd64"}
