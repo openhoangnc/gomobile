@@ -194,21 +194,21 @@ jar c -C $WORK/javac-output .
 
 var bindIOSTmpl = template.Must(template.New("output").Parse(`GOMOBILE={{.GOPATH}}/pkg/gomobile
 WORK=$WORK
-GOOS=ios CGO_ENABLED=1 gobind -lang=go,objc -outdir=$WORK -tags=ios{{if .Prefix}} -prefix={{.Prefix}}{{end}} golang.org/x/mobile/asset
 rm -r -f "{{.Output}}.xcframework"
-mkdir -p $WORK/src
-PWD=$WORK/src GOOS=ios GOARCH=arm64 GOFLAGS=-tags=ios CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go mod tidy
-PWD=$WORK/src GOOS=ios GOARCH=arm64 GOFLAGS=-tags=ios CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK:$GOPATH go build -x -buildmode=c-archive -o $WORK/{{.Output}}-ios-arm64.a ./gobind
+GOOS=ios CGO_ENABLED=1 gobind -lang=go,objc -outdir=$WORK/ios -tags=ios{{if .Prefix}} -prefix={{.Prefix}}{{end}} golang.org/x/mobile/asset
+mkdir -p $WORK/ios/src
+PWD=$WORK/ios/src GOOS=ios GOARCH=arm64 GOFLAGS=-tags=ios CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK/ios:$GOPATH go mod tidy
+PWD=$WORK/ios/src GOOS=ios GOARCH=arm64 GOFLAGS=-tags=ios CC=iphoneos-clang CXX=iphoneos-clang++ CGO_CFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_CXXFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_LDFLAGS=-isysroot=iphoneos -miphoneos-version-min=13.0 {{if .BitcodeEnabled}}-fembed-bitcode {{end}}-arch arm64 CGO_ENABLED=1 GOPATH=$WORK/ios:$GOPATH go build -x -buildmode=c-archive -o $WORK/{{.Output}}-ios-arm64.a ./gobind
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
 ln -s A $WORK/ios/{{.Output}}.framework/Versions/Current
 ln -s Versions/Current/Headers $WORK/ios/{{.Output}}.framework/Headers
 ln -s Versions/Current/{{.Output}} $WORK/ios/{{.Output}}.framework/{{.Output}}
 xcrun lipo -create -arch arm64 $WORK/{{.Output}}-ios-arm64.a -o $WORK/ios/{{.Output}}.framework/Versions/A/{{.Output}}
-cp $WORK/src/gobind/{{.Prefix}}Asset.objc.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
+cp $WORK/ios/src/gobind/{{.Prefix}}Asset.objc.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
-cp $WORK/src/gobind/Universe.objc.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
+cp $WORK/ios/src/gobind/Universe.objc.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
-cp $WORK/src/gobind/ref.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/ref.h
+cp $WORK/ios/src/gobind/ref.h $WORK/ios/{{.Output}}.framework/Versions/A/Headers/ref.h
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Headers
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Resources
@@ -216,6 +216,7 @@ ln -s Versions/Current/Resources $WORK/ios/{{.Output}}.framework/Resources
 mkdir -p $WORK/ios/{{.Output}}.framework/Resources
 mkdir -p $WORK/ios/{{.Output}}.framework/Versions/A/Modules
 ln -s Versions/Current/Modules $WORK/ios/{{.Output}}.framework/Modules
+GOOS=ios CGO_ENABLED=1 gobind -lang=go,objc -outdir=$WORK/iossimulator -tags=ios,iossimulator{{if .Prefix}} -prefix={{.Prefix}}{{end}} golang.org/x/mobile/asset
 xcodebuild -create-xcframework -framework $WORK/ios/{{.Output}}.framework -framework $WORK/iossimulator/{{.Output}}.framework -output {{.Output}}.xcframework
 `))
 
