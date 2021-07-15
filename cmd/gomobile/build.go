@@ -382,20 +382,14 @@ func parseBuildTarget(buildTarget string) (targetPlatforms, targetArchs []string
 			return nil, nil, fmt.Errorf(`cannot mix android and darwin platforms`)
 		}
 
-		expanded, err := expandPlatform(platform)
-		if err != nil {
-			return nil, nil, err
-		}
-		for _, p := range expanded {
-			if !platforms[p] {
-				platforms[p] = true
-				targetPlatforms = append(targetPlatforms, p)
-				if !hasArch {
-					for _, arch := range platformArchs(p) {
-						if !archs[arch] {
-							archs[arch] = true
-							targetArchs = append(targetArchs, arch)
-						}
+		if !platforms[platform] {
+			platforms[platform] = true
+			targetPlatforms = append(targetPlatforms, platform)
+			if !hasArch {
+				for _, arch := range platformArchs(platform) {
+					if !archs[arch] {
+						archs[arch] = true
+						targetArchs = append(targetArchs, arch)
 					}
 				}
 			}

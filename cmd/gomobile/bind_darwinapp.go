@@ -43,18 +43,14 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 		return err
 	}
 
-	// create separate framework for ios,simulator and catalyst
-	// every target has at least one arch (arm64 and x86_64)
 	var frameworkDirs []string
+	frameworkArchCount := map[string]int{}
 	for _, platform := range targetPlatforms {
 		// Catalyst support requires iOS 13+
 		v, _ := strconv.ParseFloat(buildIOSVersion, 64)
 		if platform == "maccatalyst" && v < 13.0 {
 			return errors.New("catalyst requires -iosversion=13 or higher")
 		}
-
-		frameworkDir := filepath.Join(tmpdir, platform, title+".framework")
-		frameworkDirs = append(frameworkDirs, frameworkDir)
 
 		outDir := filepath.Join(tmpdir, platform)
 		outSrcDir := filepath.Join(outDir, "src")
@@ -80,13 +76,18 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 			return err
 		}
 
-		var numArchs int
 		for _, arch := range platformArchs(platform) {
 			// Skip unrequested architectures
 			if !contains(targetArchs, arch) {
 				continue
 			}
-			numArchs++
+
+			env := darwinEnv[platform+"/"+arch][:]
+			sdk := getenv(env, "DARWIN_SDK")
+
+			frameworkDir := filepath.Join(tmpdir, platform, sdk, title+".framework")
+			frameworkDirs = append(frameworkDirs, frameworkDir)
+			frameworkArchCount[frameworkDir] = frameworkArchCount[frameworkDir] + 1
 
 			fileBases := make([]string, len(pkgs)+1)
 			for i, pkg := range pkgs {
@@ -94,15 +95,13 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 			}
 			fileBases[len(fileBases)-1] = "Universe"
 
-			env := darwinEnv[platform+"/"+arch][:]
+			// Add the generated packages to GOPATH for reverse bindings.
+			gopath := fmt.Sprintf("GOPATH=%s%c%s", outDir, filepath.ListSeparator, goEnv("GOPATH"))
+			env = append(env, gopath)
 
 			if err := writeGoMod(outDir, platform, arch); err != nil {
 				return err
 			}
-
-			// Add the generated packages to GOPATH for reverse bindings.
-			gopath := fmt.Sprintf("GOPATH=%s%c%s", outDir, filepath.ListSeparator, goEnv("GOPATH"))
-			env = append(env, gopath)
 
 			// Run `go mod tidy` to force to create go.sum.
 			// Without go.sum, `go build` fails as of Go 1.16.
@@ -120,7 +119,7 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 			versionsDir := filepath.Join(frameworkDir, "Versions")
 			versionsADir := filepath.Join(versionsDir, "A")
 			titlePath := filepath.Join(versionsADir, title)
-			if numArchs > 1 {
+			if frameworkArchCount[frameworkDir] > 1 {
 				// Not the first static lib, attach to a fat library and skip create headers
 				fatCmd := exec.Command(
 					"xcrun",

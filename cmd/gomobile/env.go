@@ -25,25 +25,6 @@ var (
 	bitcodeEnabled bool
 )
 
-// expandPlatform returns a list of currently-supported SDKs for platform.
-func expandPlatform(platform string) (platforms []string, _ error) {
-	switch platform {
-	case "android":
-		return []string{"android"}, nil
-	case "ios":
-		// Preserve existing -target=ios behavior
-		return []string{"ios", "iossimulator"}, nil
-	case "iossimulator":
-		return []string{"iossimulator"}, nil
-	case "macos":
-		return []string{"macos"}, nil
-	case "maccatalyst":
-		return []string{"maccatalyst"}, nil
-	default:
-		return nil, fmt.Errorf("unexpected platform: %s", platform)
-	}
-}
-
 func isAndroidPlatform(platform string) bool {
 	return platform == "android"
 }
@@ -52,16 +33,12 @@ func isDarwinPlatform(platform string) bool {
 	return contains(darwinPlatforms, platform)
 }
 
-var darwinPlatforms = []string{"ios", "iossimulator", "maccatalyst", "macos"}
+var darwinPlatforms = []string{"ios", "maccatalyst", "macos"}
 
 func platformArchs(platform string) []string {
 	switch platform {
 	case "ios":
-		// Only build iOS on arm64
-		return []string{"arm64"}
-	case "iossimulator":
-		// Only build iOS simulator on amd64
-		return []string{"amd64"}
+		return []string{"arm64", "amd64"}
 	case "macos", "maccatalyst":
 		return []string{"arm64", "amd64"}
 	case "android":
@@ -80,7 +57,7 @@ func platformOS(platform string) string {
 	switch platform {
 	case "android":
 		return "android"
-	case "ios", "iossimulator":
+	case "ios":
 		return "ios"
 	case "macos", "maccatalyst":
 		return "darwin"
@@ -95,8 +72,6 @@ func platformTags(platform string) []string {
 		return []string{"android"}
 	case "ios":
 		return []string{"ios"}
-	case "iossimulator":
-		return []string{"ios", "iossimulator"}
 	case "macos":
 		return []string{"macos"}
 	case "maccatalyst":
@@ -225,20 +200,25 @@ func envInit() (err error) {
 	for _, platform := range darwinPlatforms {
 		for _, arch := range platformArchs(platform) {
 			var env []string
-			var goos, clang, cflags string
+			var goos, sdk, clang, cflags string
 			var err error
 			switch platform {
 			case "ios":
 				goos = "ios"
-				clang, cflags, err = envClang("iphoneos")
-				cflags += " -miphoneos-version-min=" + buildIOSVersion
-			case "iossimulator":
-				goos = "ios"
-				clang, cflags, err = envClang("iphonesimulator")
-				cflags += " -mios-simulator-version-min=" + buildIOSVersion
+				switch arch {
+				case "arm64":
+					sdk = "iphoneos"
+					clang, cflags, err = envClang(sdk)
+					cflags += " -miphoneos-version-min=" + buildIOSVersion
+				case "amd64":
+					sdk = "iphonesimulator"
+					clang, cflags, err = envClang(sdk)
+					cflags += " -mios-simulator-version-min=" + buildIOSVersion
+				}
 			case "maccatalyst":
 				goos = "darwin"
-				clang, cflags, err = envClang("macosx")
+				sdk = "macosx"
+				clang, cflags, err = envClang(sdk)
 				switch arch {
 				case "amd64":
 					cflags += " -target x86_64-apple-ios" + buildIOSVersion + "-macabi"
@@ -248,10 +228,10 @@ func envInit() (err error) {
 				// cflags += " -UTARGET_OS_IPHONE"
 			case "macos":
 				goos = "darwin"
-				// Note: the SDK is called "macosx", not "macos"
-				clang, cflags, err = envClang("macosx")
+				sdk = "macosx" // Note: the SDK is called "macosx", not "macos"
+				clang, cflags, err = envClang(sdk)
 			default:
-				panic(fmt.Errorf("unknown darwin target: %q", arch))
+				panic(fmt.Errorf("unknown darwin target: %s/%s", platform, arch))
 			}
 
 			if err != nil {
@@ -271,6 +251,7 @@ func envInit() (err error) {
 				"CGO_CXXFLAGS="+cflags+" -arch "+archClang(arch),
 				"CGO_LDFLAGS="+cflags+" -arch "+archClang(arch),
 				"CGO_ENABLED=1",
+				"DARWIN_SDK="+sdk,
 			)
 			darwinEnv[platform+"/"+arch] = env
 		}
