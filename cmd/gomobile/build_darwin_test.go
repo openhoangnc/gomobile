@@ -23,6 +23,11 @@ func TestDarwinBuild(t *testing.T) {
 	buildTarget = "darwin"
 	buildBundleID = "org.golang.todo"
 	gopath = filepath.SplitList(goEnv("GOPATH"))[0]
+	oldTags := buildTags
+	buildTags = []string{"tag1"}
+	defer func() {
+		buildTags = oldTags
+	}()
 	tests := []struct {
 		pkg  string
 		main bool
@@ -38,7 +43,7 @@ func TestDarwinBuild(t *testing.T) {
 		} else {
 			buildO = ""
 		}
-		cmdBuild.flag.Parse([]string{"-tags", "tag1", test.pkg})
+		cmdBuild.flag.Parse([]string{test.pkg})
 		err := runBuild(cmdBuild)
 		if err != nil {
 			t.Log(buf.String())
