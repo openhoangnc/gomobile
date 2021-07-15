@@ -82,14 +82,15 @@ func runBind(cmd *command) error {
 	}
 
 	if isAndroidPlatform(targetPlatforms[0]) {
-		if bindJavaPkg != "" {
-			return fmt.Errorf("-javapkg is supported only for android target")
-		}
 		if bindPrefix != "" {
 			return fmt.Errorf("-prefix is supported only for darwin targets")
 		}
 		if _, err := ndkRoot(); err != nil {
 			return err
+		}
+	} else {
+		if bindJavaPkg != "" {
+			return fmt.Errorf("-javapkg is supported only for android target")
 		}
 	}
 
