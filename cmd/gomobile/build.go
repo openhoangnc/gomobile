@@ -374,9 +374,10 @@ func parseBuildTarget(buildTarget string) (targetPlatforms, targetArchs []string
 
 		if isAndroidPlatform(platform) {
 			isAndroid = true
-		}
-		if isDarwinPlatform(platform) {
+		} else if isDarwinPlatform(platform) {
 			isDarwin = true
+		} else {
+			return nil, nil, fmt.Errorf("unsupported platform: %q", platform)
 		}
 		if isAndroid && isDarwin {
 			return nil, nil, fmt.Errorf(`cannot mix android and darwin platforms`)

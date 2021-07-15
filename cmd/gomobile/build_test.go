@@ -130,31 +130,33 @@ func TestParseBuildTargetFlag(t *testing.T) {
 		{"ios", false, "ios", "arm64,amd64"},
 		{"ios,ios/arm64", false, "ios", "arm64,amd64"},
 		{"ios/arm64", false, "ios", "arm64"},
+		{"ios/amd64", false, "ios", "amd64"},
 
 		{"", true, "", ""},
 		{"linux", true, "", ""},
 		{"android/x86", true, "", ""},
 		{"android/arm5", true, "", ""},
-		{"ios/amd64", true, "", ""},
 		{"ios/mips", true, "", ""},
 		{"android,ios", true, "", ""},
 		{"ios,android", true, "", ""},
 	}
 
 	for _, tc := range tests {
-		p, a, err := parseBuildTarget(tc.in)
-		gotPlatforms := strings.Join(p, ",")
-		gotArchs := strings.Join(a, ",")
-		if tc.wantErr {
-			if err == nil {
-				t.Errorf("-target=%q; want error, got (%q, %q, nil)", tc.in, gotPlatforms, gotArchs)
+		t.Run(tc.in, func(t *testing.T) {
+			p, a, err := parseBuildTarget(tc.in)
+			gotPlatforms := strings.Join(p, ",")
+			gotArchs := strings.Join(a, ",")
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("-target=%q; want error, got (%q, %q, nil)", tc.in, gotPlatforms, gotArchs)
+				}
+				return
 			}
-			continue
-		}
-		if err != nil || gotPlatforms != tc.wantPlatforms || gotArchs != tc.wantArchs {
-			t.Errorf("-target=%q; want (%q, %q, nil), got (%q, %q, %v)",
-				tc.in, tc.wantPlatforms, tc.wantArchs, gotPlatforms, gotArchs, err)
-		}
+			if err != nil || gotPlatforms != tc.wantPlatforms || gotArchs != tc.wantArchs {
+				t.Errorf("-target=%q; want (%q, %q, nil), got (%q, %q, %v)",
+					tc.in, tc.wantPlatforms, tc.wantArchs, gotPlatforms, gotArchs, err)
+			}
+		})
 	}
 }
 
