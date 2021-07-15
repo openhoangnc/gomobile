@@ -248,6 +248,7 @@ func envInit() (err error) {
 				case "arm64":
 					cflags += " -target arm64-apple-ios" + buildIOSVersion + "-macabi"
 				}
+				// cflags += " -UTARGET_OS_IPHONE"
 			case "macos":
 				goos = "darwin"
 				// Note: the SDK is called "macosx", not "macos"
