@@ -18,29 +18,6 @@ import (
 )
 
 func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targetArchs []string) error {
-	// Run gobind to generate the bindings
-	cmd := exec.Command(
-		gobind,
-		"-lang=go,objc",
-		"-outdir="+tmpdir,
-	)
-	cmd.Env = append(cmd.Env, "GOOS=ios")
-	cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
-	// TODO(ydnar): move this cmd into the inner platform loop below
-	tags := append(buildTags, platformTags(targetPlatforms[0])...)
-	cmd.Args = append(cmd.Args, "-tags="+strings.Join(tags, ","))
-	if bindPrefix != "" {
-		cmd.Args = append(cmd.Args, "-prefix="+bindPrefix)
-	}
-	for _, p := range pkgs {
-		cmd.Args = append(cmd.Args, p.PkgPath)
-	}
-	if err := runCmd(cmd); err != nil {
-		return err
-	}
-
-	srcDir := filepath.Join(tmpdir, "src", "gobind")
-
 	var name string
 	var title string
 
@@ -79,10 +56,44 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 		frameworkDir := filepath.Join(tmpdir, platform, title+".framework")
 		frameworkDirs = append(frameworkDirs, frameworkDir)
 
-		for index, arch := range platformArchs(platform) {
+		var numArchs int
+		for _, arch := range platformArchs(platform) {
 			// Skip unrequested architectures
 			if !contains(targetArchs, arch) {
 				continue
+			}
+			numArchs++
+
+			env := darwinEnv[platform+"/"+arch][:]
+
+			outDir := filepath.Join(tmpdir, platform, arch)
+			outSrcDir := filepath.Join(outDir, "src")
+			gobindDir := filepath.Join(outSrcDir, "gobind")
+
+			if err := writeGoMod(outDir, platform, arch); err != nil {
+				return err
+			}
+
+			// Run gobind to generate the bindings
+			cmd := exec.Command(
+				gobind,
+				"-lang=go,objc",
+				"-outdir="+outDir,
+			)
+			// TODO(ydnar): use darwinEnv here?
+			// cmd.Env = append(cmd.Env, "GOOS="+platformOS(platform))
+			// cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
+			cmd.Env = append(cmd.Env, env...)
+			tags := append(buildTags[:], platformTags(targetPlatforms[0])...)
+			cmd.Args = append(cmd.Args, "-tags="+strings.Join(tags, ","))
+			if bindPrefix != "" {
+				cmd.Args = append(cmd.Args, "-prefix="+bindPrefix)
+			}
+			for _, p := range pkgs {
+				cmd.Args = append(cmd.Args, p.PkgPath)
+			}
+			if err := runCmd(cmd); err != nil {
+				return err
 			}
 
 			fileBases := make([]string, len(pkgs)+1)
@@ -91,25 +102,19 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 			}
 			fileBases[len(fileBases)-1] = "Universe"
 
-			env := darwinEnv[platform+"/"+arch]
-
-			if err := writeGoMod(platform, arch); err != nil {
-				return err
-			}
-
 			// Add the generated packages to GOPATH for reverse bindings.
-			gopath := fmt.Sprintf("GOPATH=%s%c%s", tmpdir, filepath.ListSeparator, goEnv("GOPATH"))
+			gopath := fmt.Sprintf("GOPATH=%s%c%s", outDir, filepath.ListSeparator, goEnv("GOPATH"))
 			env = append(env, gopath)
 
 			// Run `go mod tidy` to force to create go.sum.
 			// Without go.sum, `go build` fails as of Go 1.16.
 			if modulesUsed {
-				if err := goModTidyAt(filepath.Join(tmpdir, "src"), env); err != nil {
+				if err := goModTidyAt(outSrcDir, env); err != nil {
 					return err
 				}
 			}
 
-			path, err := goDarwinBindArchive(name+"-"+platform+"-"+arch, env, filepath.Join(tmpdir, "src"))
+			path, err := goDarwinBindArchive(name+"-"+platform+"-"+arch, env, outSrcDir)
 			if err != nil {
 				return fmt.Errorf("%s/%s: %v", platform, arch, err)
 			}
@@ -117,8 +122,8 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 			versionsDir := filepath.Join(frameworkDir, "Versions")
 			versionsADir := filepath.Join(versionsDir, "A")
 			titlePath := filepath.Join(versionsADir, title)
-			if index > 0 {
-				// not the first static lib, attach to a fat library and skip create headers
+			if numArchs > 1 {
+				// Not the first static lib, attach to a fat library and skip create headers
 				fatCmd := exec.Command(
 					"xcrun",
 					"lipo", "-create", "-output", titlePath, titlePath, path,
@@ -157,7 +162,7 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 				headerFiles = append(headerFiles, title+".h")
 				err := copyFile(
 					filepath.Join(versionsAHeadersDir, title+".h"),
-					filepath.Join(srcDir, bindPrefix+title+".objc.h"),
+					filepath.Join(gobindDir, bindPrefix+title+".objc.h"),
 				)
 				if err != nil {
 					return err
@@ -167,7 +172,7 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 					headerFiles = append(headerFiles, fileBase+".objc.h")
 					err := copyFile(
 						filepath.Join(versionsAHeadersDir, fileBase+".objc.h"),
-						filepath.Join(srcDir, fileBase+".objc.h"),
+						filepath.Join(gobindDir, fileBase+".objc.h"),
 					)
 					if err != nil {
 						return err
@@ -175,7 +180,7 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 				}
 				err := copyFile(
 					filepath.Join(versionsAHeadersDir, "ref.h"),
-					filepath.Join(srcDir, "ref.h"),
+					filepath.Join(gobindDir, "ref.h"),
 				)
 				if err != nil {
 					return err
@@ -233,7 +238,7 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 	}
 
 	xcframeworkArgs = append(xcframeworkArgs, "-output", buildO)
-	cmd = exec.Command("xcodebuild", xcframeworkArgs...)
+	cmd := exec.Command("xcodebuild", xcframeworkArgs...)
 	err = runCmd(cmd)
 	return err
 }
