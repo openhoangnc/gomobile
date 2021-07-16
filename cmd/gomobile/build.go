@@ -363,10 +363,12 @@ func parseBuildTarget(buildTarget string) (targetPlatforms, targetArchs []string
 		return nil, nil, fmt.Errorf(`invalid target ""`)
 	}
 
-	// TODO(ydnar): preserve existing behavior where -target=ios
-	// builds for iphonesimulator as well.
-	if buildTarget == "ios" {
-		buildTarget = "ios,iphonesimulator"
+	// TODO(ydnar): preserve existing behavior for -target=ios
+	switch buildTarget {
+	case "ios":
+		buildTarget = "ios,iossimulator"
+	case "ios/amd64":
+		buildTarget = "iossimulator/amd64"
 	}
 
 	platforms := map[string]bool{}
