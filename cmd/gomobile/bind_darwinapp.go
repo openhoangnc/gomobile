@@ -123,7 +123,7 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 				// Not the first static lib, attach to a fat library and skip create headers
 				fatCmd := exec.Command(
 					"xcrun",
-					"lipo", "-create", "-output", titlePath, titlePath, path,
+					"lipo", path, titlePath, "-create", "-output", titlePath,
 				)
 				if err := runCmd(fatCmd); err != nil {
 					return err
@@ -147,7 +147,7 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 
 			lipoCmd := exec.Command(
 				"xcrun",
-				"lipo", "-create", "-arch", archClang(arch), path, "-o", titlePath,
+				"lipo", path, "-create", "-o", titlePath,
 			)
 			if err := runCmd(lipoCmd); err != nil {
 				return err
