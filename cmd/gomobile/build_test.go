@@ -115,23 +115,22 @@ GOOS=android GOARCH=arm CC=$NDK_PATH/toolchains/llvm/prebuilt/{{.NDKARCH}}/bin/a
 `))
 
 func TestParseBuildTargetFlag(t *testing.T) {
-	androidArchs := strings.Join(allArchs("android"), ",")
-	iosArchs := strings.Join(allArchs("ios"), ",")
+	androidArchs := strings.Join(platformArchs("android"), ",")
 
 	tests := []struct {
-		in        string
-		wantErr   bool
-		wantOS    string
-		wantArchs string
+		in            string
+		wantErr       bool
+		wantPlatforms string
+		wantArchs     string
 	}{
 		{"android", false, "android", androidArchs},
 		{"android,android/arm", false, "android", androidArchs},
 		{"android/arm", false, "android", "arm"},
 
-		{"ios", false, "darwin", iosArchs},
-		{"ios,ios/arm64", false, "darwin", iosArchs},
-		{"ios/arm64", false, "darwin", "arm64"},
-		{"ios/amd64", false, "darwin", "amd64"},
+		{"ios", false, "ios", "arm64,amd64"},
+		{"ios,ios/arm64", false, "ios", "arm64,amd64"},
+		{"ios/arm64", false, "ios", "arm64"},
+		{"ios/amd64", false, "ios", "amd64"},
 
 		{"", true, "", ""},
 		{"linux", true, "", ""},
@@ -143,17 +142,21 @@ func TestParseBuildTargetFlag(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		gotOS, gotArchs, err := parseBuildTarget(tc.in)
-		if tc.wantErr {
-			if err == nil {
-				t.Errorf("-target=%q; want error, got (%q, %q, nil)", tc.in, gotOS, gotArchs)
+		t.Run(tc.in, func(t *testing.T) {
+			p, a, err := parseBuildTarget(tc.in)
+			gotPlatforms := strings.Join(p, ",")
+			gotArchs := strings.Join(a, ",")
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("-target=%q; want error, got (%q, %q, nil)", tc.in, gotPlatforms, gotArchs)
+				}
+				return
 			}
-			continue
-		}
-		if err != nil || gotOS != tc.wantOS || strings.Join(gotArchs, ",") != tc.wantArchs {
-			t.Errorf("-target=%q; want (%v, [%v], nil), got (%q, %q, %v)",
-				tc.in, tc.wantOS, tc.wantArchs, gotOS, gotArchs, err)
-		}
+			if err != nil || gotPlatforms != tc.wantPlatforms || gotArchs != tc.wantArchs {
+				t.Errorf("-target=%q; want (%q, %q, nil), got (%q, %q, %v)",
+					tc.in, tc.wantPlatforms, tc.wantArchs, gotPlatforms, gotArchs, err)
+			}
+		})
 	}
 }
 
