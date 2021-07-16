@@ -33,11 +33,13 @@ func isDarwinPlatform(platform string) bool {
 	return contains(darwinPlatforms, platform)
 }
 
-var darwinPlatforms = []string{"ios", "maccatalyst", "macos"}
+var darwinPlatforms = []string{"ios", "iphonesimulator", "maccatalyst", "macos"}
 
 func platformArchs(platform string) []string {
 	switch platform {
 	case "ios":
+		return []string{"arm64"}
+	case "iphonesimulator":
 		return []string{"arm64", "amd64"}
 	case "macos", "maccatalyst":
 		return []string{"arm64", "amd64"}
@@ -57,7 +59,7 @@ func platformOS(platform string) string {
 	switch platform {
 	case "android":
 		return "android"
-	case "ios":
+	case "ios", "iphonesimulator":
 		return "ios"
 	case "macos", "maccatalyst":
 		return "darwin"
@@ -70,7 +72,7 @@ func platformTags(platform string) []string {
 	switch platform {
 	case "android":
 		return []string{"android"}
-	case "ios":
+	case "ios", "iphonesimulator":
 		return []string{"ios"}
 	case "macos":
 		return []string{"macos"}
@@ -205,16 +207,14 @@ func envInit() (err error) {
 			switch platform {
 			case "ios":
 				goos = "ios"
-				switch arch {
-				case "arm64":
-					sdk = "iphoneos"
-					clang, cflags, err = envClang(sdk)
-					cflags += " -miphoneos-version-min=" + buildIOSVersion
-				case "amd64":
-					sdk = "iphonesimulator"
-					clang, cflags, err = envClang(sdk)
-					cflags += " -mios-simulator-version-min=" + buildIOSVersion
-				}
+				sdk = "iphoneos"
+				clang, cflags, err = envClang(sdk)
+				cflags += " -miphoneos-version-min=" + buildIOSVersion
+			case "iphonesimulator":
+				goos = "ios"
+				sdk = "iphonesimulator"
+				clang, cflags, err = envClang(sdk)
+				cflags += " -mios-simulator-version-min=" + buildIOSVersion
 			case "maccatalyst":
 				goos = "darwin"
 				sdk = "macosx"
