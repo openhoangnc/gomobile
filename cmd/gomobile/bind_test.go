@@ -203,7 +203,7 @@ mkdir -p $WORK/ios/iphoneos/{{.Output}}.framework/Versions/A/Headers
 ln -s A $WORK/ios/iphoneos/{{.Output}}.framework/Versions/Current
 ln -s Versions/Current/Headers $WORK/ios/iphoneos/{{.Output}}.framework/Headers
 ln -s Versions/Current/{{.Output}} $WORK/ios/iphoneos/{{.Output}}.framework/{{.Output}}
-xcrun lipo -create -arch arm64 $WORK/{{.Output}}-ios-arm64.a -o $WORK/ios/iphoneos/{{.Output}}.framework/Versions/A/{{.Output}}
+xcrun lipo $WORK/{{.Output}}-ios-arm64.a -create -o $WORK/ios/iphoneos/{{.Output}}.framework/Versions/A/{{.Output}}
 cp $WORK/ios/src/gobind/{{.Prefix}}Asset.objc.h $WORK/ios/iphoneos/{{.Output}}.framework/Versions/A/Headers/{{.Prefix}}Asset.objc.h
 mkdir -p $WORK/ios/iphoneos/{{.Output}}.framework/Versions/A/Headers
 cp $WORK/ios/src/gobind/Universe.objc.h $WORK/ios/iphoneos/{{.Output}}.framework/Versions/A/Headers/Universe.objc.h
