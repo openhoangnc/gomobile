@@ -78,7 +78,7 @@ func goDarwinBuild(pkg *packages.Package, bundleID string, targetPlatforms, targ
 	)
 
 	var nmpkgs map[string]bool
-	builds := map[string]bool{}
+	builtArch := map[string]bool{}
 	for _, platform := range targetPlatforms {
 		for _, arch := range targetArchs {
 			// Skip unrequested architectures
@@ -86,13 +86,12 @@ func goDarwinBuild(pkg *packages.Package, bundleID string, targetPlatforms, targ
 				continue
 			}
 
-			// ios and iossimulator can't share the same fat output file
-			if platform == "ios" || platform == "iossimulator" {
-				if builds["ios/"+arch] || builds["iossimulator/"+arch] {
-					continue
-				}
+			// Only one binary per arch allowed
+			// e.g. ios/arm64 + iossimulator/amd64
+			if builtArch[arch] {
+				continue
 			}
-			builds[platform+"/"+arch] = true
+			builtArch[arch] = true
 
 			path := filepath.Join(tmpdir, platform, arch)
 
