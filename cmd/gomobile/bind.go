@@ -23,14 +23,14 @@ import (
 var cmdBind = &command{
 	run:   runBind,
 	Name:  "bind",
-	Usage: "[-target android|ios] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]",
+	Usage: "[-target android|" + strings.Join(darwinPlatforms, "|") + "] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]",
 	Short: "build a library for Android and iOS",
 	Long: `
 Bind generates language bindings for the package named by the import
 path, and compiles a library for the named target system.
 
-The -target flag takes a target system name, either android (the
-default) or ios.
+The -target flag takes one or more comma-delimited platform names,
+either android (the default) or ` + strings.Join(darwinPlatforms, ", ") + `.
 
 For -target android, the bind command produces an AAR (Android ARchive)
 file that archives the precompiled Java API stub classes, the compiled
@@ -52,9 +52,9 @@ instruction sets (arm, arm64, 386, amd64). A subset of instruction sets
 can be selected by specifying target type with the architecture name. E.g.,
 -target=android/arm,android/386.
 
-For -target ios, gomobile must be run on an OS X machine with Xcode
-installed. The generated Objective-C types can be prefixed with the -prefix
-flag.
+For Apple -target platforms, gomobile must be run on an OS X machine with
+Xcode installed. The generated Objective-C types can be prefixed with the
+-prefix flag.
 
 For -target android, the -bootclasspath and -classpath flags are used to
 control the bootstrap classpath and the classpath for Go wrappers to Java

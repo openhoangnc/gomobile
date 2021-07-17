@@ -25,15 +25,15 @@ var tmpdir string
 var cmdBuild = &command{
 	run:   runBuild,
 	Name:  "build",
-	Usage: "[-target android|ios] [-o output] [-bundleid bundleID] [build flags] [package]",
+	Usage: "[-target android|" + strings.Join(darwinPlatforms, "|") + "] [-o output] [-bundleid bundleID] [build flags] [package]",
 	Short: "compile android APK and iOS app",
 	Long: `
 Build compiles and encodes the app named by the import path.
 
 The named package must define a main function.
 
-The -target flag takes a target system name, either android (the
-default) or ios.
+The -target flag takes a target platform, either android (the
+default) or ` + strings.Join(darwinPlatforms, ", ") + `.
 
 For -target android, if an AndroidManifest.xml is defined in the
 package directory, it is added to the APK output. Otherwise, a default
@@ -42,8 +42,8 @@ instruction sets (arm, 386, amd64, arm64). A subset of instruction sets can
 be selected by specifying target type with the architecture name. E.g.
 -target=android/arm,android/386.
 
-For -target ios, gomobile must be run on an OS X machine with Xcode
-installed.
+For Apple -target platforms, gomobile must be run on an OS X machine with
+Xcode installed.
 
 If the package directory contains an assets subdirectory, its contents
 are copied into the output.
