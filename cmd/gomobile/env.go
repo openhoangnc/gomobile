@@ -152,8 +152,11 @@ func envInit() (err error) {
 	if err != nil {
 		return err
 	}
+
+	var bitcodeFlag string
 	if len(strings.TrimSpace(string(out))) > 0 {
 		bitcodeEnabled = true
+		bitcodeFlag = " -fembed-bitcode"
 	}
 
 	// Setup the cross-compiler environments.
@@ -209,12 +212,12 @@ func envInit() (err error) {
 				goos = "ios"
 				sdk = "iphoneos"
 				clang, cflags, err = envClang(sdk)
-				cflags += " -miphoneos-version-min=" + buildIOSVersion
+				cflags += " -miphoneos-version-min=" + buildIOSVersion + bitcodeFlag
 			case "iossimulator":
 				goos = "ios"
 				sdk = "iphonesimulator"
 				clang, cflags, err = envClang(sdk)
-				cflags += " -mios-simulator-version-min=" + buildIOSVersion
+				cflags += " -mios-simulator-version-min=" + buildIOSVersion + bitcodeFlag
 			case "maccatalyst":
 				goos = "darwin"
 				sdk = "macosx"
@@ -223,24 +226,21 @@ func envInit() (err error) {
 				case "amd64":
 					cflags += " -target x86_64-apple-ios" + buildIOSVersion + "-macabi"
 				case "arm64":
-					cflags += " -target arm64-apple-ios" + buildIOSVersion + "-macabi"
+					cflags += " -target arm64-apple-ios" + buildIOSVersion + "-macabi" + bitcodeFlag
 				}
-				// cflags += " -UTARGET_OS_IPHONE"
 			case "macos":
 				goos = "darwin"
 				sdk = "macosx" // Note: the SDK is called "macosx", not "macos"
 				clang, cflags, err = envClang(sdk)
+				if arch != "amd64" {
+					cflags += bitcodeFlag
+				}
 			default:
 				panic(fmt.Errorf("unknown darwin target: %s/%s", platform, arch))
 			}
 
 			if err != nil {
 				return err
-			}
-
-			// ld: -no_pie and -bitcode_bundle (Xcode setting ENABLE_BITCODE=YES) cannot be used together
-			if bitcodeEnabled && arch != "amd64" {
-				cflags += " -fembed-bitcode"
 			}
 
 			env = append(env,
