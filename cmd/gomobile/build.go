@@ -145,9 +145,9 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 					return nil, errors.New("catalyst requires -iosversion=13 or higher")
 				}
 
-				for _, arch := range platformArchs(platform) {
+				for _, arch := range targetArchs {
 					// Skip unrequested architectures
-					if !contains(targetArchs, arch) {
+					if !isSupportedArch(platform, arch) {
 						continue
 					}
 					if err := goBuild(pkg.PkgPath, darwinEnv[platform+"/"+arch]); err != nil {

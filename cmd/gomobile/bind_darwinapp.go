@@ -76,9 +76,9 @@ func goDarwinbind(gobind string, pkgs []*packages.Package, targetPlatforms, targ
 			return err
 		}
 
-		for _, arch := range platformArchs(platform) {
+		for _, arch := range targetArchs {
 			// Skip unrequested architectures
-			if !contains(targetArchs, arch) {
+			if !isSupportedArch(platform, arch) {
 				continue
 			}
 

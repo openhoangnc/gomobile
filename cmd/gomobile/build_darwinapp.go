@@ -79,9 +79,9 @@ func goDarwinBuild(pkg *packages.Package, bundleID string, targetPlatforms, targ
 
 	var nmpkgs map[string]bool
 	for _, platform := range targetPlatforms {
-		for _, arch := range platformArchs(platform) {
+		for _, arch := range targetArchs {
 			// Skip unrequested architectures
-			if !contains(targetArchs, arch) {
+			if !isSupportedArch(platform, arch) {
 				continue
 			}
 
