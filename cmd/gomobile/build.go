@@ -355,24 +355,14 @@ func goModTidyAt(at string, env []string) error {
 // Example valid target strings:
 //    android
 //    android/arm64,android/386,android/amd64
-//    ios,simulator,catalyst
+//    ios,iossimulator,maccatalyst
 //    macos/amd64
-//    darwin
 func parseBuildTarget(buildTarget string) (targetPlatforms, targetArchs []string, _ error) {
 	if buildTarget == "" {
 		return nil, nil, fmt.Errorf(`invalid target ""`)
 	}
 
-	// TODO(ydnar): preserve existing behavior for -target=ios
-	switch buildTarget {
-	case "ios":
-		buildTarget = "ios,iossimulator"
-	case "ios/amd64":
-		buildTarget = "iossimulator/amd64"
-	}
-
-	platforms := map[string]bool{}
-	archs := map[string]bool{}
+	var platforms, archs orderedSet
 
 	var isAndroid, isDarwin bool
 	for _, target := range strings.Split(buildTarget, ",") {
@@ -391,17 +381,9 @@ func parseBuildTarget(buildTarget string) (targetPlatforms, targetArchs []string
 			return nil, nil, fmt.Errorf(`cannot mix android and darwin platforms`)
 		}
 
-		if !platforms[platform] {
-			platforms[platform] = true
-			targetPlatforms = append(targetPlatforms, platform)
-			if !hasArch {
-				for _, arch := range platformArchs(platform) {
-					if !archs[arch] {
-						archs[arch] = true
-						targetArchs = append(targetArchs, arch)
-					}
-				}
-			}
+		platforms.Add(platform)
+		if platform == "ios" {
+			platforms.Add("iossimulator")
 		}
 
 		if hasArch {
@@ -409,12 +391,42 @@ func parseBuildTarget(buildTarget string) (targetPlatforms, targetArchs []string
 			if !isSupportedArch(platform, arch) {
 				return nil, nil, fmt.Errorf(`unsupported platform/arch: %q`, target)
 			}
-			if !archs[arch] {
-				archs[arch] = true
-				targetArchs = append(targetArchs, arch)
+			archs.Add(arch)
+		}
+	}
+
+	if len(archs.Slice()) == 0 {
+		for _, platform := range platforms.Slice() {
+			for _, arch := range platformArchs(platform) {
+				archs.Add(arch)
 			}
 		}
 	}
 
-	return targetPlatforms, targetArchs, nil
+	return platforms.Slice(), archs.Slice(), nil
+}
+
+type orderedSet struct {
+	strs []string
+	m    map[string]bool
+}
+
+func (s *orderedSet) Has(str string) bool {
+	return s.m[str]
+}
+
+func (s *orderedSet) Add(strs ...string) {
+	for _, str := range strs {
+		if !s.m[str] {
+			if s.m == nil {
+				s.m = make(map[string]bool)
+			}
+			s.m[str] = true
+			s.strs = append(s.strs, str)
+		}
+	}
+}
+
+func (s *orderedSet) Slice() []string {
+	return s.strs
 }

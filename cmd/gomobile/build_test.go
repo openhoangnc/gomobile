@@ -124,13 +124,12 @@ func TestParseBuildTargetFlag(t *testing.T) {
 		wantArchs     string
 	}{
 		{"android", false, "android", androidArchs},
-		{"android,android/arm", false, "android", androidArchs},
+		{"android,android/arm", false, "android", "arm"},
 		{"android/arm", false, "android", "arm"},
 
 		{"ios", false, "ios,iossimulator", "arm64,amd64"},
-		{"ios,ios/arm64", false, "ios", "arm64"},
-		{"ios/arm64", false, "ios", "arm64"},
-		{"ios/amd64", false, "iossimulator", "amd64"},
+		{"ios,ios/arm64", false, "ios,iossimulator", "arm64"},
+		{"ios/arm64", false, "ios,iossimulator", "arm64"},
 
 		{"", true, "", ""},
 		{"linux", true, "", ""},
@@ -139,6 +138,7 @@ func TestParseBuildTargetFlag(t *testing.T) {
 		{"ios/mips", true, "", ""},
 		{"android,ios", true, "", ""},
 		{"ios,android", true, "", ""},
+		{"ios/amd64", true, "", ""},
 	}
 
 	for _, tc := range tests {
