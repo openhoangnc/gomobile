@@ -238,9 +238,11 @@ func envInit() (err error) {
 				return err
 			}
 
-			if bitcodeEnabled {
+			// ld: -no_pie and -bitcode_bundle (Xcode setting ENABLE_BITCODE=YES) cannot be used together
+			if bitcodeEnabled && arch != "amd64" {
 				cflags += " -fembed-bitcode"
 			}
+
 			env = append(env,
 				"GOOS="+goos,
 				"GOARCH="+arch,
